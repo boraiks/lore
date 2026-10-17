@@ -30,7 +30,7 @@ def _parser() -> argparse.ArgumentParser:
                    help=f"max results (default {recall.DEFAULT_LIMIT}, cap {recall.MAX_LIMIT})")
 
     j = sub.add_parser("jot", help="write a new note (generated header, no overwrite, no secrets)")
-    j.add_argument("--area", required=True, choices=list(vault.AREAS))
+    j.add_argument("--area", required=True, help="an existing area; see `lore.py area list`")
     j.add_argument("--title", required=True)
     j.add_argument("--tags", default="", help="comma separated")
     j.add_argument("--status", default="active", choices=frontmatter.STATUSES)
@@ -61,6 +61,18 @@ def _parser() -> argparse.ArgumentParser:
     w = sub.add_parser("wire", help="install the session hooks (dry run by default)")
     w.add_argument("--apply", action="store_true", help="write the changes (backs up first)")
     w.add_argument("--only", choices=list(wire.TARGETS))
+
+    ar = sub.add_parser("area", help="list or add areas (a folder with a note of its own name)")
+    ars = ar.add_subparsers(dest="area_cmd", required=True)
+    ars.add_parser("list", help="areas in the vault, and suggested ones not created yet")
+    ad = ars.add_parser("add", help="create an area")
+    ad.add_argument("name", help="lowercase letters, digits and '-'")
+    ad.add_argument("description", nargs="?", help="what goes there (default for suggested areas)")
+
+    me = sub.add_parser("me", help="show me.md, or replace its body (secret-checked)")
+    mbody = me.add_mutually_exclusive_group()
+    mbody.add_argument("--body")
+    mbody.add_argument("--body-file", help="UTF-8 file; '-' for stdin")
 
     up = sub.add_parser("update", help="pull the new code and refresh this vault's rules and skills")
     up.add_argument("--no-pull", action="store_true", help="skip git pull; only refresh the vault")
@@ -137,6 +149,44 @@ def _scope(args) -> int:
     except (ValueError, OSError) as e:
         print(f"ERROR: {e}; the settings file was not touched.")
         return 5
+
+
+def _area(args, notes_dir: Path) -> int:
+    if args.area_cmd == "add":
+        try:
+            path = vault.add_area(notes_dir, args.name, args.description)
+        except ValueError as e:
+            print(f"ERROR: {e}")
+            return 5
+        print("AREA CREATED:", _display(path, notes_dir))
+        return 0
+    existing = vault.areas(notes_dir)
+    for name in existing:
+        count = sum(1 for p in vault.iter_notes(notes_dir / name) if p.stem != name)
+        print(f"{name}  ({count} notes)")
+    suggested = [n for n in vault.SUGGESTED_AREAS if n not in existing]
+    if suggested:
+        print("Suggested, not created yet: " + ", ".join(suggested)
+              + "  (python lore.py area add <name>)")
+    return 0
+
+
+def _me(args, notes_dir: Path) -> int:
+    if args.body is None and args.body_file is None:
+        path = notes_dir / f"{vault.ME}.md"
+        if not path.exists():
+            print("No me.md yet. Write it with: python lore.py me --body-file -")
+            return 0
+        print(recall.DATA_WARNING)
+        print(frontmatter.parse(vault.read(path))[1].strip())
+        return 0
+    try:
+        path = vault.set_me(notes_dir, args.body if args.body is not None else _read_body(args))
+    except guard.SecretRejected as e:
+        print(f"REJECTED: {e}. Nothing was written; remove that line.")
+        return 3
+    print("WRITTEN:", _display(path, notes_dir))
+    return 0
 
 
 def _seal(args, notes_dir: Path) -> int:
@@ -278,5 +328,11 @@ def main(argv=None, notes_dir: Path | None = None) -> int:
 
     if args.cmd == "seal":
         return _seal(args, notes_dir)
+
+    if args.cmd == "area":
+        return _area(args, notes_dir)
+
+    if args.cmd == "me":
+        return _me(args, notes_dir)
 
     return 2

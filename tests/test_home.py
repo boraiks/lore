@@ -53,7 +53,9 @@ class HomeCommandTest(VaultCase):
         self.assertEqual(code, 0, out)
         self.assertIn(target.as_posix(), out)
         self.assertTrue((target / "home.md").is_file())
-        self.assertTrue((target / "career" / "career.md").is_file())
+        self.assertTrue((target / "inbox" / "inbox.md").is_file())
+        self.assertTrue((target / "me.md").is_file())
+        self.assertFalse((target / "career").exists())  # areas beyond the required ones are chosen
         self.assertFalse((target / "notes").exists())  # no notes/ subfolder any more
         for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md", "_templates/lore-note.md",
                      ".obsidian/graph.json"):

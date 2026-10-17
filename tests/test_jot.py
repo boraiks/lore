@@ -1,12 +1,16 @@
 import unittest
 
-from lorelib import frontmatter, jot
+from lorelib import frontmatter, jot, vault
 from tests.helpers import NOW, VaultCase
 
 AWS = "AKIA" + "ABCDEFGHIJKLMNOP"
 
 
 class JotTest(VaultCase):
+    def setUp(self):
+        super().setUp()
+        vault.add_area(self.notes, "career", now=NOW, machine="DESK-1")
+
     def write(self, **kw):
         args = dict(area="career", title="Acme başvurusu", body="İlk görüşme yapıldı.",
                     tags=["staj"], client="claude", now=NOW, machine="DESK-1")

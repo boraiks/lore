@@ -215,6 +215,7 @@ class AgSealTest(AgCase):
         super().setUp()
         from lorelib import vault
         vault.seed(self.notes)
+        vault.add_area(self.notes, "courses")
         antigravity_transcript(self.t, ["Ders planı yap"], ["Yaptım"])
 
     def seal(self, **kw):

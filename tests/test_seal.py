@@ -12,6 +12,7 @@ class SealCase(VaultCase):
         super().setUp()
         self.state = self.notes.parent / "state"
         vault.seed(self.notes, now=NOW, machine="M")
+        vault.add_area(self.notes, "career", now=NOW, machine="M")
         self.put("career/acme.md", "---\ntitle: Acme\n---\nAcme notu")
 
     def cfg(self, **kw):

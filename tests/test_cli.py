@@ -15,6 +15,12 @@ class CliTest(VaultCase):
             code = cli.main(list(argv), notes_dir=self.notes)
         return code, out.getvalue(), err.getvalue()
 
+    def setUp(self):
+        super().setUp()
+        self.run_cli("seed")
+        for area in ("courses", "ideas"):
+            self.assertEqual(self.run_cli("area", "add", area)[0], 0)
+
     def test_seed_jot_recall_mesh(self):
         self.assertEqual(self.run_cli("seed")[0], 0)
         code, out, _ = self.run_cli("jot", "--area", "courses", "--title", "Veri Yapıları",

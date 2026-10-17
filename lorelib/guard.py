@@ -7,6 +7,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+class SecretRejected(Exception):
+    def __init__(self, findings):
+        self.findings = findings
+        where = ", ".join(f"{f.field} line {f.line}: {f.kind}" for f in findings)
+        super().__init__(f"possible secret or sensitive data found (value hidden): {where}")
+
+
 @dataclass(frozen=True)
 class Finding:
     line: int

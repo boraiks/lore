@@ -15,7 +15,7 @@ import socket
 from datetime import datetime
 from pathlib import Path
 
-from . import frontmatter
+from . import frontmatter, guard
 from .turkish import fold
 
 REPO = Path(__file__).resolve().parent.parent
@@ -56,8 +56,14 @@ VAULT = locate()[0]
 NOTES_DIR = VAULT  # notes live at the vault root
 STATE_DIR = VAULT / ".lore" / "state"  # reminder and private markers
 
+# An area is a folder at the vault root holding a note of the same name (career/career.md).
 # area -> (title of its area note, what goes there)
-AREAS = {
+REQUIRED_AREAS = {  # lore itself needs these
+    "inbox": ("Inbox", "Notes that do not belong to an area yet. When several of them share a "
+                       "theme, the agent suggests a new area."),
+    "sessions": ("Sessions", "Outcome records of agent sessions; written by `seal`, not by hand."),
+}
+SUGGESTED_AREAS = {  # offered during setup; any other name works too
     "career": ("Career", "Jobs and internships. One note per company or application: role, "
                          "date applied, status, interviews, next step. CV and interview "
                          "preparation live here too."),
@@ -65,11 +71,24 @@ AREAS = {
     "ideas": ("Ideas", "Project ideas. One note per idea: the problem, why it is interesting, "
                        "the first step."),
     "research": ("Research", "Day-to-day research: what was read, tried and found, with sources."),
-    "sessions": ("Sessions", "Outcome records of agent sessions; written by `seal`, not by hand."),
-    "imports": ("Imports", "Notes brought over from old chat history. Kept apart so they do not "
-                           "clutter the graph; do not write here by hand."),
+    "personal": ("Personal", "Personal life: goals, habits, plans and reflections. No ID "
+                             "numbers, addresses or passwords."),
+    "work": ("Work", "Work notes: projects, meetings, decisions and follow-ups."),
 }
 HOME = "home"
+ME = "me"
+_AREA_NAME = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
+_ME_BODY = """What agents should know about the user, in the user's own words. Agents read this at the start of a session, so keep it short. Never put ID numbers, addresses, passwords or other identifiers here.
+
+## What I use this memory for
+
+## What I am working on
+
+## How I like answers
+
+## Language for notes
+
+Home: [[home]]"""
 
 
 def hub(area: str) -> str:
@@ -141,17 +160,69 @@ def _seed_note(title: str, tags: list[str], body: str, now, machine) -> str:
 
 
 def seed(notes_dir: Path, now: datetime | None = None, machine: str | None = None) -> list[Path]:
-    """Create missing area folders, area notes and the home note. Never overwrites."""
-    files = {notes_dir / f"{HOME}.md": _seed_note(
-        "Home", ["home"],
-        "Home of your second brain. Never write personal data, passwords, keys, tokens, ID or "
-        "financial numbers here.\n\n"
-        + "\n".join(f"- [[{hub(a)}|{t}]]: {d.split('.')[0]}." for a, (t, d) in AREAS.items()),
-        now, machine)}
-    for area, (title, desc) in AREAS.items():
+    """Create the home note, me.md and the required areas if missing. Never overwrites."""
+    files = {
+        notes_dir / f"{HOME}.md": _seed_note(
+            "Home", ["home"],
+            "Home of your second brain. Every area note links here; `lore.py area list` shows "
+            "the areas. Never write personal data, passwords, keys, tokens, ID or financial "
+            "numbers in notes.", now, machine),
+        notes_dir / f"{ME}.md": _seed_note("About me", ["me"], _ME_BODY, now, machine),
+    }
+    for area, (title, desc) in REQUIRED_AREAS.items():
         files[notes_dir / area / f"{area}.md"] = _seed_note(
             title, ["area", area], f"{desc}\n\nHome: [[{HOME}]]", now, machine)
     return _create_missing(files)
+
+
+def areas(vault_dir: Path) -> list[str]:
+    """Folders at the vault root that hold a note of their own name."""
+    if not vault_dir.is_dir():
+        return []
+    return sorted(p.name for p in vault_dir.iterdir()
+                  if p.is_dir() and not p.name.startswith((".", "_"))
+                  and (p / f"{p.name}.md").is_file())
+
+
+def add_area(vault_dir: Path, name: str, description: str | None = None,
+             now: datetime | None = None, machine: str | None = None) -> Path:
+    """Create <name>/<name>.md. An existing folder is adopted; its files stay as they are."""
+    if not _AREA_NAME.match(name or ""):
+        raise ValueError(f"invalid area name: {name!r} (lowercase letters, digits and '-', "
+                         "at most 40 characters)")
+    path = vault_dir / name / f"{name}.md"
+    if path.exists():
+        raise ValueError(f"area already exists: {name}")
+    known = {**REQUIRED_AREAS, **SUGGESTED_AREAS}
+    words = name.replace("-", " ")
+    title, default = known.get(name, (words.title(), f"Notes about {words}."))
+    desc = " ".join((description or default).split())
+    if guard.scan(desc):
+        raise ValueError("the description looks like it holds a secret or a personal number "
+                         "(value hidden); nothing was created")
+    write_new(path, _seed_note(title, ["area", name], f"{desc}\n\nHome: [[{HOME}]]", now, machine))
+    return path
+
+
+def set_me(vault_dir: Path, body: str, now: datetime | None = None) -> Path:
+    """Replace the body of me.md, keeping its header; refused if it holds a secret."""
+    findings = guard.scan(body, field="me")
+    if findings:
+        raise guard.SecretRejected(findings)
+    path = vault_dir / f"{ME}.md"
+    if path.exists():
+        meta, _ = frontmatter.parse(read(path))
+    else:
+        meta, _ = frontmatter.parse(_seed_note("About me", ["me"], "", now, None))
+    meta["updated"] = stamp(now)
+    body = body.strip("\n")
+    if f"[[{HOME}]]" not in body:
+        body += f"\n\nHome: [[{HOME}]]"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(frontmatter.render(meta) + "\n" + body + "\n", encoding="utf-8", newline="\n")
+    os.replace(tmp, path)
+    return path
 
 
 def _create_missing(files: dict) -> list[Path]:
@@ -167,7 +238,8 @@ def _create_missing(files: dict) -> list[Path]:
 
 # Obsidian graph colours per area (RGB as Obsidian stores it: one integer).
 _GRAPH_COLORS = {"career": 0xE8A33D, "courses": 0x4C9AFF, "ideas": 0xB37FEB,
-                 "research": 0x36B37E, "sessions": 0x8993A4, "imports": 0x6B778C}
+                 "research": 0x36B37E, "personal": 0xE5607A, "work": 0xF2C94C,
+                 "sessions": 0x8993A4, "inbox": 0xC1C7D0}
 _TEMPLATE = """---
 title: "{{title}}"
 created: {{date}}T{{time}}

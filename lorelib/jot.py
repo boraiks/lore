@@ -6,14 +6,8 @@ from datetime import datetime
 from pathlib import Path
 
 from . import frontmatter, guard, mesh, vault
+from .guard import SecretRejected  # noqa: F401 - part of jot's interface
 from .turkish import lower
-
-
-class SecretRejected(Exception):
-    def __init__(self, findings: list[guard.Finding]):
-        self.findings = findings
-        where = ", ".join(f"{f.field} line {f.line}: {f.kind}" for f in findings)
-        super().__init__(f"possible secret or sensitive data found (value hidden): {where}")
 
 
 class NoteExists(Exception):
@@ -39,8 +33,10 @@ def jot(notes_dir: Path, area: str, title: str, body: str = "", tags=(), status:
         type: str = "note", client: str | None = None, links=(), now: datetime | None = None,
         machine: str | None = None) -> tuple[Path, list[str]]:
     """Write a new note; returns (path, warnings). Nothing touches disk if a check fails."""
-    if area not in vault.AREAS:
-        raise ValueError(f"unknown area: {area} (choices: {', '.join(vault.AREAS)})")
+    existing = set(vault.REQUIRED_AREAS) | set(vault.areas(notes_dir))
+    if area not in existing:
+        raise ValueError(f"unknown area: {area} (areas: {', '.join(sorted(existing))}); "
+                         f"create it first with `lore.py area add {area}`")
     if status not in frontmatter.STATUSES:
         raise ValueError(f"invalid status: {status}")
     if type not in frontmatter.TYPES:

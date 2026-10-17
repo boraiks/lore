@@ -18,17 +18,17 @@ class SlugifyTest(unittest.TestCase):
 class SeedTest(VaultCase):
     def test_creates_skeleton(self):
         created = vault.seed(self.notes, now=NOW, machine="M")
-        for area in vault.AREAS:
+        for area in vault.REQUIRED_AREAS:
             self.assertTrue((self.notes / area / f"{area}.md").is_file())
         self.assertTrue((self.notes / "home.md").is_file())
-        self.assertEqual(len(created), len(vault.AREAS) + 1)
-        meta, _ = frontmatter.parse((self.notes / "ideas" / "ideas.md").read_text(encoding="utf-8"))
+        self.assertEqual(len(created), len(vault.REQUIRED_AREAS) + 2)  # + home.md and me.md
+        meta, _ = frontmatter.parse((self.notes / "inbox" / "inbox.md").read_text(encoding="utf-8"))
         self.assertEqual(frontmatter.missing_fields(meta), [])
 
     def test_never_overwrites(self):
-        self.put("ideas/ideas.md", "benim metnim")
+        self.put("inbox/inbox.md", "benim metnim")
         vault.seed(self.notes, now=NOW, machine="M")
-        self.assertEqual((self.notes / "ideas" / "ideas.md").read_text(encoding="utf-8"), "benim metnim")
+        self.assertEqual((self.notes / "inbox" / "inbox.md").read_text(encoding="utf-8"), "benim metnim")
         self.assertEqual(vault.seed(self.notes, now=NOW, machine="M"), [])
 
     def test_iter_notes_skips_hidden(self):

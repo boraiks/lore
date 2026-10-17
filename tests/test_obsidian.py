@@ -44,7 +44,7 @@ class NotNotesTest(VaultCase):
         self.assertIn("home.md", names)
         report = mesh.check(self.notes)
         self.assertEqual((report.broken, report.orphans), ([], []))
-        self.assertEqual(recall.recall(self.notes, "lore.py"), [])
+        self.assertEqual(recall.recall(self.notes, "conversationId"), [])  # only in AGENTS.md
 
     def test_a_users_own_agents_md_in_a_subfolder_is_a_note(self):
         self.put("research/AGENTS.md", "[[home]]")

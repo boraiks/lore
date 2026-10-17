@@ -98,7 +98,26 @@ Then open the vault folder in Obsidian, and install the session hooks. Look firs
 - **Antigravity** reads the hook file after a restart (details: [docs/antigravity-hooks.md](docs/antigravity-hooks.md)).
 - Without hooks lore still works; the agent follows the rules in `AGENTS.md`.
 
-To update: `git pull`, then `python lore.py seed`.
+## Updating
+
+Open your vault in your AI client and paste:
+
+```text
+Update lore: follow the "Updating later" part of INSTALL.md in the lore repository, and show me any hook change before applying it.
+```
+
+Or by hand:
+
+    git -C <path-to-lore> pull
+    python <path-to-lore>/lore.py seed
+    python <path-to-lore>/lore.py wire      # only if you use hooks: shows whether anything changed
+
+Your notes are safe across updates:
+- **They are not in this repository.** The vault is a separate folder, so `git pull` has nothing of yours to change.
+- **`seed` only adds what is missing.** It never overwrites a note, a README you edited, or your Obsidian settings.
+- **Note format changes never rewrite notes on their own.** If a future version ever needs to change existing notes, that will be a separate command that shows a dry run first.
+
+If `git pull` complains about local changes, you edited lore's own files. Keep your changes in a fork, or set them aside with `git stash`.
 
 ## Commands
 

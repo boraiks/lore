@@ -64,7 +64,10 @@ Tell the user:
 - The graph view colours notes by area.
 
 ## Updating later
-    git -C LORE pull
-    python LORE/lore.py seed
+When the user asks to update lore:
 
-`seed` adds anything new that is missing and syncs the skills; it never touches existing notes.
+1. Find `LORE`: it is the path named in the vault's `AGENTS.md` ("The lore code lives in ...").
+2. Pull the new version: `git -C "LORE" pull`. If git refuses because of local changes, stop and tell the user. Never run `git reset --hard`, `git checkout -- .`, `git stash` or `git clean` without the user's clear approval.
+3. Add whatever is new and missing: `python LORE/lore.py seed`. It never touches existing notes, edited READMEs or Obsidian settings.
+4. If the user uses hooks, run `python LORE/lore.py wire`. If it reports changes, show them and apply with `--apply` only after a clear "yes".
+5. Run the tests (step 4 above) and tell the user what changed: `git -C "LORE" log --oneline -10`.

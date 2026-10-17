@@ -12,9 +12,11 @@ This folder is a lore vault: a personal memory shared by AI clients. Notes are p
 - Write note content in the user's language.
 
 ## At the start of a session
-Do not read the whole vault. If the task touches earlier work, search first and open only the relevant results:
+Read `me.md` at the vault root if it exists: it is short and tells you who the user is, what they use this memory for and how they like answers. Do not read the rest of the vault. If the task touches earlier work, search first and open only the relevant results:
 
     python {{LORE}}/lore.py recall "internship interview"    # 5 results at most; --limit N (20 max)
+
+Update `me.md` only with things the user says about themselves and wants remembered, through `python {{LORE}}/lore.py me --body-file -` (it keeps the header and rejects secrets). Never put ID numbers, addresses, passwords or similar there.
 
 ## Writing a note
     python {{LORE}}/lore.py jot --area <area> --title "<title>" --tags a,b --client <claude|codex|antigravity> --link <area/note> --body "<text>"
@@ -22,7 +24,13 @@ Do not read the whole vault. If the task touches earlier work, search first and 
 - Long text: `--body-file path` (UTF-8) or `--body-file -` (stdin). Other options: `--status draft|active|done`, `--type note|task|research|session`.
 - The command writes the header (title, created, updated, tags, status, type, machine, client) and builds the file name from the title. It never overwrites an existing file. It also tags the note `client/<client>`, so the Obsidian graph can show where it was written.
 - Every note links to at least one related note: pass `--link` or use `[[...]]` in the text. If neither is given, it links to the area note (`career/career`, `ideas/ideas`, ...).
-- Areas: `career` (jobs and internships: applications, interviews, CV), `courses` (course notes), `ideas` (project ideas), `research` (day-to-day research), `sessions` (session outcomes), `imports` (old chats brought over; do not write here by hand).
+- Areas are the folders at the vault root that hold a note of their own name; `python {{LORE}}/lore.py area list` shows them. The user chooses them. Two always exist: `inbox` for anything without a clear area, and `sessions` for outcome records (written by `seal` only).
+
+## New areas: suggest, never create on your own
+- When several notes (about three) share a theme that no area covers, or the user clearly starts something new in their life or work, suggest an area in one sentence: its name and why. Example: "Three notes about training have piled up in inbox; shall I create a `fitness` area?"
+- Create it only after the user says yes: `python {{LORE}}/lore.py area add <name> "<what goes there>"` (lowercase, digits and `-`).
+- Moving existing notes into the new area is a separate question. List the notes and move nothing without approval.
+- Suggest each area at most once per session, and not again if the user declined.
 
 ## At the end of a session: the outcome record
 When meaningful work is done, record the session outcome BEFORE your final answer. Do not write one for a simple question, a greeting or small talk.

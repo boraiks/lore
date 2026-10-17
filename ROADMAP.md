@@ -5,6 +5,7 @@
 - **Memory commands:** `recall` (suffix-tolerant, limited, masked search), `jot` (safe note writing with a header, secret rejection and links), `mesh` (broken links, orphan notes, outcome checks).
 - **Session outcome:** when meaningful work is done, the agent writes a 3-8 line linked `## Outcome` with `seal`. The note is found by session id and updated in place.
 - **Hooks (Claude Code, Codex, Antigravity):** they write nothing into the memory. They remind once when there is no outcome and the session is past the threshold, and log a content-free session record in the vault's hidden `.lore/` folder. `wire` installs them, dry run by default.
+- **Areas you choose and an intro:** only `inbox` and `sessions` are fixed; other areas are chosen at setup (`area add`) or suggested by the agent when a theme piles up, never created without a yes. A short, skippable intro writes `me.md`, which agents read first.
 - **Graph:** colour = area, `[[links]]` = topic, `#client/<name>` tag = where a note was written (shown as nodes when the graph's Tags option is on).
 - **Privacy:** an allow list (`allowed_roots`, the `scope` command), `private_dirs`, `seal --private`, a secret and personal-number filter, and the public repository test.
 - **Skills:** `lore-memory`, `lore-check`, `lore-setup`, from one source in `skills/`; `seed` syncs both client folders.

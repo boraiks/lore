@@ -26,7 +26,7 @@ Keep every note that is already here. Show me each hook change before applying i
 At the end, save a test note and read it back so we can check it together.
 ```
 
-The agent checks Python and git, clones lore into a separate folder, turns your folder into a lore vault without touching what is already there, runs the tests, shows you the hook changes and applies them only after you say yes, then saves a test note and reads it back. You only answer its questions and, in Codex, approve the hooks with `/hooks`.
+The agent checks Python and git, clones lore into a separate folder, and turns your folder into a lore vault without touching what is already there. Then it asks a few short questions (all skippable): what you will use the memory for, what you are working on, how you like answers. It creates only the areas you choose and writes your answers to `me.md`. Finally it runs the tests, shows you the hook changes and applies them only after you say yes, and saves a test note and reads it back. You only answer its questions and, in Codex, approve the hooks with `/hooks`.
 
 Prefer to do it by hand? See [Manual setup](#manual-setup).
 
@@ -39,6 +39,8 @@ Prefer to do it by hand? See [Manual setup](#manual-setup).
 | "Save" / "Wrap up" | records the session outcome with `seal` |
 | "Check the memory" | runs `mesh` and suggests fixes without touching anything |
 | "Don't save this session" | marks it private; nothing is recorded |
+| *(three training notes pile up in inbox)* | suggests a `fitness` area in one sentence and creates it only if you agree |
+| "Remember that I prefer short answers" | updates `me.md`, which every session reads first |
 
 Long session and no outcome yet? The hook reminds the agent once, right before it stops.
 
@@ -57,12 +59,11 @@ Long session and no outcome yet? The hook reminds the agent once, right before i
 ```
 lore-vault/
 ├── home.md            home page
-├── career/            jobs and internships: applications, interviews, CV (area note: career.md)
-├── courses/           course notes
-├── ideas/             project ideas
-├── research/          day-to-day research
-├── sessions/          session outcomes (written by seal)
-├── imports/           old chats brought over
+├── me.md              about you: what agents should know first (read at every session start)
+├── inbox/             notes without an area yet (always there)
+├── sessions/          session outcomes, written by seal (always there)
+├── career/            an area you chose: a folder with a note of its own name (career/career.md)
+├── ...                any other areas you chose: courses, ideas, research, personal, work, fitness, ...
 ├── _templates/        Obsidian template with lore's note header
 ├── AGENTS.md          lore's rules for agents, with the path to the code filled in
 ├── CLAUDE.md, GEMINI.md  point Claude Code and Gemini clients to AGENTS.md
@@ -72,6 +73,13 @@ lore-vault/
 ```
 
 lore finds the vault through the `LORE_HOME` environment variable, then `~/.lore.json` (written by `lore.py home`), then a `lore-vault` folder next to the repository.
+
+## Areas are yours
+
+Not everyone studies or hunts for jobs, so lore forces no topics on you. It creates only `inbox` and `sessions`, the two areas it needs itself. Everything else is your choice:
+- During setup the agent asks what you will use the memory for and creates just those areas. `lore.py area list` shows yours and the suggested ones (`career`, `courses`, `ideas`, `research`, `personal`, `work`); `lore.py area add <name> "<what goes there>"` adds any area you like.
+- An area is simply a folder holding a note of its own name, so a folder and note you make in Obsidian count too.
+- Over time, notes that fit no area land in `inbox`. When a theme piles up there, the agent **suggests** a new area in one sentence. It creates the area only if you agree, and moves existing notes into it only after a separate yes.
 
 ## Obsidian
 
@@ -131,6 +139,8 @@ Your notes are safe across updates:
 | `seal` | Record the session outcome as an `## Outcome` block in `sessions/<date>-<client>-<topic>.md`, updated in place for the same session. |
 | `mesh` | Broken `[[links]]`, orphan notes, broken outcome blocks, and (as information) sessions without an outcome. |
 | `home [folder]` | Show or set the vault, and set it up. |
+| `area list` / `area add <name> ["<what>"]` | Show the areas (and suggested ones), or add one. |
+| `me [--body-file -]` | Show `me.md`, or replace its body (secret-checked). |
 | `seed` | Create whatever is missing and refresh the vault's rules and skills; never touches notes. |
 | `update [--no-pull]` | Pull the new code, then do what `seed` does and report whether the hooks need a change. |
 | `scope list\|add\|remove` | Folders where the hooks may act. |

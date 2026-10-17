@@ -7,7 +7,7 @@
 - **Hooks (Claude Code, Codex, Antigravity):** they write nothing into the memory. They remind once when there is no outcome and the session is past the threshold, and log a content-free session record in the vault's hidden `.lore/` folder. `wire` installs them, dry run by default.
 - **Privacy:** an allow list (`allowed_roots`, the `scope` command), `private_dirs`, `seal --private`, a secret and personal-number filter, and the public repository test.
 - **Skills:** `lore-memory`, `lore-check`, `lore-setup`, from one source in `skills/`; `seed` syncs both client folders.
-- **One-message install and Obsidian:** `INSTALL.md` lets an agent set lore up from a single pasted message. `home` writes `AGENTS.md`/`CLAUDE.md`/`GEMINI.md` into the vault so clients opened there find lore, plus an Obsidian note template and graph colours, each only if missing.
+- **One-message install, updates and Obsidian:** `INSTALL.md` lets an agent set lore up from a single pasted message. The vault gets lore's real rules and skills (with the path to the code filled in), tracked by hash so `lore.py update` refreshes untouched copies and keeps edited ones. Also an Obsidian note template and graph colours, each only if missing.
 
 ## Next
 - [ ] **Health check and safe repair.** One command to check everything. Repairs only do safe, reversible things, always show a dry run first, and offer anything that touches user content as a suggestion.

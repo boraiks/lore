@@ -64,9 +64,11 @@ lore-vault/
 ├── sessions/          session outcomes (written by seal)
 ├── imports/           old chats brought over
 ├── _templates/        Obsidian template with lore's note header
-├── AGENTS.md          leads AI clients opened here to lore's rules
-├── CLAUDE.md, GEMINI.md
-└── .lore/             logs, session log, settings (hidden)
+├── AGENTS.md          lore's rules for agents, with the path to the code filled in
+├── CLAUDE.md, GEMINI.md  point Claude Code and Gemini clients to AGENTS.md
+├── .claude/skills/    skills for Claude Code
+├── .agents/skills/    skills for Antigravity and Codex
+└── .lore/             logs, session log, settings, list of installed files (hidden)
 ```
 
 lore finds the vault through the `LORE_HOME` environment variable, then `~/.lore.json` (written by `lore.py home`), then a `lore-vault` folder next to the repository.
@@ -100,24 +102,19 @@ Then open the vault folder in Obsidian, and install the session hooks. Look firs
 
 ## Updating
 
-Open your vault in your AI client and paste:
+Open your vault in your AI client and say **"update lore"**. The agent runs:
 
-```text
-Update lore: follow the "Updating later" part of INSTALL.md in the lore repository, and show me any hook change before applying it.
-```
+    python <path-to-lore>/lore.py update
 
-Or by hand:
-
-    git -C <path-to-lore> pull
-    python <path-to-lore>/lore.py seed
-    python <path-to-lore>/lore.py wire      # only if you use hooks: shows whether anything changed
+which does three things:
+1. **Pulls the new code** with `git pull --ff-only`. If that fails (for example because lore's own files were edited), it stops and changes nothing.
+2. **Refreshes the vault's rules and skills** (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/skills/`, `.agents/skills/`). lore remembers what it last wrote to each of these files. A file you never touched takes the new version; a file you edited is kept as it is, and the new version waits next to it as `<file>.new`.
+3. **Checks the hooks** and tells you if they need a change. Applying it is a separate step that you approve (`lore.py wire`, then `--apply`).
 
 Your notes are safe across updates:
-- **They are not in this repository.** The vault is a separate folder, so `git pull` has nothing of yours to change.
-- **`seed` only adds what is missing.** It never overwrites a note, a README you edited, or your Obsidian settings.
+- **They are not in the code folder.** `git pull` has nothing of yours to change.
+- **Only lore's own files are refreshed,** never notes, area READMEs or Obsidian settings; missing ones are added.
 - **Note format changes never rewrite notes on their own.** If a future version ever needs to change existing notes, that will be a separate command that shows a dry run first.
-
-If `git pull` complains about local changes, you edited lore's own files. Keep your changes in a fork, or set them aside with `git stash`.
 
 ## Commands
 
@@ -128,7 +125,8 @@ If `git pull` complains about local changes, you edited lore's own files. Keep y
 | `seal` | Record the session outcome as an `## Outcome` block in `sessions/<date>-<client>-<topic>.md`, updated in place for the same session. |
 | `mesh` | Broken `[[links]]`, orphan notes, broken outcome blocks, and (as information) sessions without an outcome. |
 | `home [folder]` | Show or set the vault, and set it up. |
-| `seed` | Create whatever is missing and sync the skill copies; never touches existing files. |
+| `seed` | Create whatever is missing and refresh the vault's rules and skills; never touches notes. |
+| `update [--no-pull]` | Pull the new code, then do what `seed` does and report whether the hooks need a change. |
 | `scope list\|add\|remove` | Folders where the hooks may act. |
 | `wire [--apply] [--only client]` | Install the hooks; a dry run unless `--apply`. |
 
@@ -169,7 +167,7 @@ Three short skills, one per group of commands; the real rules live in `AGENTS.md
 | `lore-check` | `mesh` | check the memory |
 | `lore-setup` | `home`, `seed`, `wire` | set up the folders, set up the hooks |
 
-The single source is `skills/<name>/SKILL.md`; `lore.py seed` copies it to `.claude/skills/` and `.agents/skills/`. Agents do not edit skill or rule files unless you ask.
+The single source is `skills/<name>/SKILL.md`; `lore.py home`, `seed` and `update` install it into the vault's `.claude/skills/` and `.agents/skills/` with the path to the code filled in. Agents do not edit skill or rule files unless you ask.
 
 ## Note header
 

@@ -24,7 +24,7 @@ Below, `LORE` stands for that folder's full path and `VAULT` for the full path o
 
 This saves the vault's location to `~/.lore.json` and creates only what is missing:
 - the area folders (`career/`, `courses/`, `ideas/`, `research/`, `sessions/`, `imports/`), their READMEs and `home.md`;
-- `AGENTS.md`, `CLAUDE.md` and `GEMINI.md`, which lead AI clients opened in the vault to lore's rules;
+- `AGENTS.md` (lore's rules, with the path to the code filled in), `CLAUDE.md` and `GEMINI.md`, plus the skills in `.claude/skills/` and `.agents/skills/`. If the user already has one of these files, it is kept and lore's version is written next to it as `<file>.new`; tell the user;
 - an Obsidian note template (`_templates/lore-note.md`) and graph colours (`.obsidian/graph.json`).
 
 Notes already in the folder stay as they are. lore works with any Markdown next to them.
@@ -64,10 +64,10 @@ Tell the user:
 - The graph view colours notes by area.
 
 ## Updating later
-When the user asks to update lore:
+When the user asks to update lore, run `python LORE/lore.py update` (`LORE` is the path named at the top of the vault's `AGENTS.md`). It:
 
-1. Find `LORE`: it is the path named in the vault's `AGENTS.md` ("The lore code lives in ...").
-2. Pull the new version: `git -C "LORE" pull`. If git refuses because of local changes, stop and tell the user. Never run `git reset --hard`, `git checkout -- .`, `git stash` or `git clean` without the user's clear approval.
-3. Add whatever is new and missing: `python LORE/lore.py seed`. It never touches existing notes, edited READMEs or Obsidian settings.
-4. If the user uses hooks, run `python LORE/lore.py wire`. If it reports changes, show them and apply with `--apply` only after a clear "yes".
-5. Run the tests (step 4 above) and tell the user what changed: `git -C "LORE" log --oneline -10`.
+1. pulls the new code with `git pull --ff-only`, and stops if that fails. Then show the message to the user; never run `git reset --hard`, `git checkout -- .`, `git stash` or `git clean` without their clear approval;
+2. refreshes the vault's rules and skills, keeping files the user edited (the new version goes next to them as `<file>.new`; tell the user);
+3. reports whether the hooks need a change. If so, show `python LORE/lore.py wire` and apply with `--apply` only after a clear "yes".
+
+Finally run the tests (step 4) and tell the user what changed: `git -C "LORE" log --oneline -10`.

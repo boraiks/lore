@@ -90,7 +90,7 @@ def rel(path: Path, notes_dir: Path) -> str:
     return path.relative_to(notes_dir).as_posix()
 
 
-# Files at the vault root that lead AI clients to lore; instructions, not notes.
+# Agent instruction files at the vault root (installed by lore); instructions, not notes.
 AGENT_FILES = ("AGENTS.md", "CLAUDE.md", "GEMINI.md")
 
 
@@ -157,20 +157,6 @@ def _create_missing(files: dict) -> list[Path]:
         except FileExistsError:
             pass
     return created
-
-
-def agent_pointers(vault_dir: Path, repo: Path | None = None) -> list[Path]:
-    """Short AGENTS.md / CLAUDE.md / GEMINI.md at the vault root, so an AI client opened in the
-    vault finds lore's rules and commands. Existing files are never touched."""
-    repo_posix = Path(repo or REPO).as_posix()
-    text = (f"# lore vault\n\nThis folder is a lore vault: personal notes kept with lore. The lore "
-            f"code lives in {repo_posix}.\n\nBefore working here, read {repo_posix}/AGENTS.md and "
-            f"follow it. Run lore commands as `python {repo_posix}/lore.py <command>`, for example "
-            f"`python {repo_posix}/lore.py recall \"<topic>\"`.\n\nWritten by `lore.py home`; "
-            f"this file is an instruction, not a note.\n")
-    importing = text + f"\n@{repo_posix}/AGENTS.md\n"  # Claude Code and Gemini read @imports
-    return _create_missing({vault_dir / "AGENTS.md": text, vault_dir / "CLAUDE.md": importing,
-                            vault_dir / "GEMINI.md": importing})
 
 
 # Obsidian graph colours per area (RGB as Obsidian stores it: one integer).

@@ -1,26 +1,8 @@
 import json
 import unittest
 
-from lorelib import mesh, recall, vault
+from lorelib import install, mesh, recall, vault
 from tests.helpers import VaultCase
-
-
-class AgentPointerTest(VaultCase):
-    def test_pointer_files_lead_to_the_repository(self):
-        created = vault.agent_pointers(self.notes)
-        self.assertEqual({p.name for p in created}, {"AGENTS.md", "CLAUDE.md", "GEMINI.md"})
-        repo = vault.REPO.as_posix()
-        for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md"):
-            text = (self.notes / name).read_text(encoding="utf-8")
-            self.assertIn(f"{repo}/AGENTS.md", text)
-            self.assertIn(f"python {repo}/lore.py", text)
-        self.assertIn(f"@{repo}/AGENTS.md", (self.notes / "CLAUDE.md").read_text(encoding="utf-8"))
-
-    def test_never_overwrites_the_users_files(self):
-        self.put("CLAUDE.md", "benim kurallarım")
-        created = vault.agent_pointers(self.notes)
-        self.assertNotIn("CLAUDE.md", {p.name for p in created})
-        self.assertEqual((self.notes / "CLAUDE.md").read_text(encoding="utf-8"), "benim kurallarım")
 
 
 class ObsidianStarterTest(VaultCase):
@@ -49,10 +31,11 @@ class ObsidianStarterTest(VaultCase):
 class NotNotesTest(VaultCase):
     def test_templates_and_pointers_are_not_notes(self):
         vault.seed(self.notes)
-        vault.agent_pointers(self.notes)
+        install.install(self.notes)
         vault.obsidian_starter(self.notes)
         names = {vault.rel(p, self.notes) for p in vault.iter_notes(self.notes)}
         self.assertNotIn("AGENTS.md", names)
+        self.assertFalse(any(n.startswith(".claude") for n in names))
         self.assertNotIn("_templates/lore-note.md", names)
         self.assertIn("home.md", names)
         report = mesh.check(self.notes)

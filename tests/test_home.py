@@ -42,7 +42,8 @@ class LocateTest(VaultCase):
 class HomeCommandTest(VaultCase):
     def run_cli(self, *argv):
         out = io.StringIO()
-        with redirect_stdout(out), mock.patch.dict(os.environ, {"LORE_HOME": ""}):
+        with redirect_stdout(out), mock.patch.dict(os.environ, {"LORE_HOME": ""}), \
+                mock.patch("lorelib.skills.sync", return_value=[]):  # keep the real repo untouched
             code = cli.main(list(argv))
         return code, out.getvalue()
 

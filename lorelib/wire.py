@@ -36,6 +36,7 @@ class Change:
     command: str = ""
     changed: bool = False
     exists: bool = False
+    installed: bool = False  # a lore hook is already in the file (possibly outdated)
     error: str = ""
     text: str = ""
     lines: list[str] = field(default_factory=list)
@@ -101,6 +102,8 @@ def plan(home: Path | None = None, python: Path | None = None, lore: Path | None
             data = json.loads(path.read_text(encoding="utf-8-sig")) if change.exists else {}
             if not isinstance(data, dict):
                 raise ValueError("the root is not a JSON object")
+            change.installed = (AG_SET in data if client == "antigravity"
+                                else bool(_OURS.search(json.dumps(data))))
             new = copy.deepcopy(data)
             if client == "antigravity":
                 change.lines = _merge_antigravity(new, change.command)

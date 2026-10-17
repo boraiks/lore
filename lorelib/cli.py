@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from . import (config, frontmatter, guard, hook, jot, mesh, recall, seal,
+from . import (config, frontmatter, guard, hook, install, jot, mesh, recall, seal,
                sessions, skills, vault, wire)
 
 
@@ -61,6 +61,9 @@ def _parser() -> argparse.ArgumentParser:
     w = sub.add_parser("wire", help="install the session hooks (dry run by default)")
     w.add_argument("--apply", action="store_true", help="write the changes (backs up first)")
     w.add_argument("--only", choices=list(wire.TARGETS))
+
+    up = sub.add_parser("update", help="pull the new code and refresh this vault's rules and skills")
+    up.add_argument("--no-pull", action="store_true", help="skip git pull; only refresh the vault")
 
     hm = sub.add_parser("home", help="show or set the personal vault folder")
     hm.add_argument("folder", nargs="?", help="if given: saved to ~/.lore.json and set up")
@@ -163,6 +166,22 @@ def _seal(args, notes_dir: Path) -> int:
     return 0
 
 
+def _set_up(vault_dir: Path) -> None:
+    """Everything `home`, `seed` and `update` lay down; notes are never touched."""
+    for path in vault.seed(vault_dir) + vault.obsidian_starter(vault_dir):
+        print("CREATED:", path.as_posix())
+    words = {"created": "CREATED", "updated": "UPDATED"}
+    for change in install.install(vault_dir):
+        if change.action in words:
+            print(f"{words[change.action]}: {change.rel}")
+        elif change.action == "kept":
+            print(f"KEPT (your edits): {change.rel}; the new version is in {change.rel}.new")
+    for change in skills.sync(vault.REPO):  # the repository's own copies, for working on lore
+        if change.action == "stale":
+            print(f"WARNING: skill copy without a source, not deleted: {change.path.as_posix()}")
+    print("Existing notes untouched.")
+
+
 def _home(args) -> int:
     if not args.folder:
         path, source = vault.locate()
@@ -171,14 +190,30 @@ def _home(args) -> int:
               "The folder does not exist yet. To set it up: python lore.py home <folder>")
         return 0
     path = vault.set_home(Path(args.folder))
-    created = vault.seed(path) + vault.agent_pointers(path) + vault.obsidian_starter(path)
     print(f"VAULT: {path.as_posix()} (saved to ~/.lore.json)")
-    for item in created:
-        print("CREATED:", item.as_posix())
-    print(f"{len(created)} files created; existing files untouched. "
-          "Open this folder as a vault in Obsidian.")
+    _set_up(path)
+    print("Open this folder as a vault in Obsidian, and in your AI client.")
     if vault.locate()[1] == "LORE_HOME":
         print("WARNING: LORE_HOME is set and takes precedence; this setting applies once it is unset.")
+    return 0
+
+
+def _update(args) -> int:
+    if not args.no_pull:
+        ok, output = install.pull()
+        if output:
+            print(output)
+        if not ok:
+            print("ERROR: git pull did not complete, so nothing else was done. "
+                  "Local changes were not touched.")
+            return 5
+    _set_up(vault.NOTES_DIR)
+    pending = [c for c in wire.plan() if c.installed and (c.changed or c.error)]
+    if pending:
+        print("Hooks: changes are waiting (" + ", ".join(c.client for c in pending) + "). "
+              "Review with `python lore.py wire`, then apply with `--apply`.")
+    else:
+        print("Hooks: nothing to do.")
     return 0
 
 
@@ -193,27 +228,21 @@ def main(argv=None, notes_dir: Path | None = None) -> int:
         return _scope(args)
     if args.cmd == "home":
         return _home(args)
+    if args.cmd == "update":
+        return _update(args)
     if args.cmd == "wire":
         return _wire(args)
     real_vault = notes_dir is None
     notes_dir = notes_dir or vault.NOTES_DIR
 
     if args.cmd == "seed":
-        created = vault.seed(notes_dir)
-        if real_vault:  # AI-client pointers and Obsidian starter files, only where missing
-            created += vault.agent_pointers(notes_dir) + vault.obsidian_starter(notes_dir)
+        if real_vault:
+            _set_up(notes_dir)
+            return 0
+        created = vault.seed(notes_dir)  # a test vault: areas only
         for path in created:
             print("CREATED:", _display(path, notes_dir))
         print(f"{len(created)} files created; existing files untouched.")
-        if not real_vault:
-            return 0
-        words = {"created": "CREATED", "updated": "UPDATED"}
-        for change in skills.sync(vault.REPO):  # skill copies live in the code repository
-            rel = change.path.relative_to(vault.REPO).as_posix()
-            if change.action in words:
-                print(f"SKILL {words[change.action]}: {rel}")
-            elif change.action == "stale":
-                print(f"WARNING: skill copy without a source, not deleted: {rel}")
         return 0
 
     if args.cmd == "recall":

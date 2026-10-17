@@ -83,7 +83,10 @@ lore finds the vault through the `LORE_HOME` environment variable, then `~/.lore
   - **links = topic**: `[[links]]` connect notes about the same thing;
   - **`#client/...` tags = where a note was written**: `jot` and `seal` tag every note with its client (`#client/claude`, `#client/codex`, `#client/antigravity`). With the graph's **Tags** option on, notes cluster around their client; turn it off for a pure topic view.
 
-lore creates these Obsidian files only when they are missing, so an existing Obsidian setup is never changed.
+lore creates these Obsidian files only when they are missing, so an existing Obsidian setup is never changed. In a brand-new vault everything above is ready. If the folder was already an Obsidian vault, do two things once:
+
+1. **Settings → Files and links → Excluded files:** add `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `_templates/`. They are instructions and a template, not notes, so they leave the graph and search.
+2. **Graph view → Filters → Tags:** turn it on to see the `#client/...` nodes.
 
 ## Manual setup
 

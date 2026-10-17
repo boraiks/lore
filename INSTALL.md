@@ -62,6 +62,7 @@ Tell the user:
 - Open the vault folder itself in Obsidian ("Open folder as vault"); the areas sit at its root.
 - To create notes by hand with lore's header, enable **Settings → Core plugins → Templates**; the template folder `_templates` is already set.
 - The graph view colours notes by area, and shows `#client/...` tags (where a note was written) as their own nodes; turn Tags off in the graph settings for a pure topic view.
+- If `lore.py home` did not report creating `.obsidian/app.json` (the folder was already an Obsidian vault), ask the user to do two things once: **Settings → Files and links → Excluded files** → add `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `_templates/`; and in **Graph view → Filters**, turn **Tags** on.
 
 ## Updating later
 When the user asks to update lore, run `python LORE/lore.py update` (`LORE` is the path named at the top of the vault's `AGENTS.md`). It:

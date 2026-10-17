@@ -184,8 +184,9 @@ Related: [[home]]
 
 
 def obsidian_starter(vault_dir: Path) -> list[Path]:
-    """A note template with lore's header and graph colours per area. Each file is created
-    only if missing: Obsidian's own settings are never changed."""
+    """A note template with lore's header, graph colours per area with tags shown, and the
+    agent files excluded from the graph. Each file is created only if missing: Obsidian's
+    own settings are never changed."""
     obsidian = vault_dir / ".obsidian"
     groups = [{"query": f"path:{area}", "color": {"a": 1, "rgb": rgb}}
               for area, rgb in _GRAPH_COLORS.items()]
@@ -196,4 +197,8 @@ def obsidian_starter(vault_dir: Path) -> list[Path]:
             indent=2) + "\n",
         obsidian / "graph.json": json.dumps({"showTags": True, "colorGroups": groups},
                                             indent=2) + "\n",
+        # "Excluded files": the agent files and the template are not notes, so keep them out
+        # of the graph, search and quick switcher.
+        obsidian / "app.json": json.dumps(
+            {"userIgnoreFilters": [*AGENT_FILES, "_templates/"]}, indent=2) + "\n",
     })

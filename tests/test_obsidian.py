@@ -9,7 +9,10 @@ class ObsidianStarterTest(VaultCase):
     def test_template_and_settings(self):
         created = {p.relative_to(self.notes).as_posix() for p in vault.obsidian_starter(self.notes)}
         self.assertEqual(created, {"_templates/lore-note.md", ".obsidian/templates.json",
-                                   ".obsidian/graph.json"})
+                                   ".obsidian/graph.json", ".obsidian/app.json"})
+        app = json.loads((self.notes / ".obsidian" / "app.json").read_text(encoding="utf-8"))
+        self.assertEqual(set(app["userIgnoreFilters"]),
+                         {"AGENTS.md", "CLAUDE.md", "GEMINI.md", "_templates/"})
         templates = json.loads((self.notes / ".obsidian" / "templates.json").read_text(encoding="utf-8"))
         self.assertEqual(templates["folder"], "_templates")
         graph = json.loads((self.notes / ".obsidian" / "graph.json").read_text(encoding="utf-8"))

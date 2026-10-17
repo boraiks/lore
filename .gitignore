@@ -1,0 +1,11 @@
+# Personal data lives in a separate vault folder (lore-vault). These stay ignored in case
+# a vault is ever pointed inside this repository.
+/notes/
+.obsidian/
+.trash/
+# Local logs and state.
+/.lore/
+
+__pycache__/
+*.pyc
+.claude/settings.local.json

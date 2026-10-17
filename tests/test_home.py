@@ -53,7 +53,7 @@ class HomeCommandTest(VaultCase):
         self.assertEqual(code, 0, out)
         self.assertIn(target.as_posix(), out)
         self.assertTrue((target / "home.md").is_file())
-        self.assertTrue((target / "career" / "README.md").is_file())
+        self.assertTrue((target / "career" / "career.md").is_file())
         self.assertFalse((target / "notes").exists())  # no notes/ subfolder any more
         for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md", "_templates/lore-note.md",
                      ".obsidian/graph.json"):
@@ -69,8 +69,8 @@ class HomeCommandTest(VaultCase):
 
 class VaultRootTest(VaultCase):
     def test_hidden_state_folder_is_not_notes(self):
-        self.put("home.md", "[[career/README]]")
-        self.put("career/README.md", "[[home]]")
+        self.put("home.md", "[[career/career]]")
+        self.put("career/career.md", "[[home]]")
         self.put(".lore/logs/x.md", "[[kayip]]")
         self.put(".obsidian/y.md", "[[kayip]]")
         report = mesh.check(self.notes)

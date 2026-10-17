@@ -22,7 +22,7 @@ def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="lore", description="Plain-Markdown second brain.")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("seed", help="create missing area folders and READMEs (never overwrites)")
+    sub.add_parser("seed", help="create missing area folders and notes (never overwrites)")
 
     r = sub.add_parser("recall", help="search the notes (Turkish suffix aware)")
     r.add_argument("query", nargs="+")

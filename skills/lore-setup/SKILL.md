@@ -7,6 +7,6 @@ description: Set up or update lore - the vault folder, rules, skills and session
 
 Rules and details are in AGENTS.md and the README.
 
-- **Folders**: for the personal vault, `python {{LORE}}/lore.py home <folder>` (without a folder it shows the current one). It creates missing area folders, READMEs, rules and skills; it never touches existing notes.
+- **Folders**: for the personal vault, `python {{LORE}}/lore.py home <folder>` (without a folder it shows the current one). It creates missing area folders, area notes, rules and skills; it never touches existing notes.
 - **Update**: `python {{LORE}}/lore.py update`. It pulls the new code and refreshes this vault's rules and skills, keeping files the user edited. If `git pull` fails, show the message and stop; never discard local changes. If it reports hook changes, handle them as below.
 - **Hooks**: always dry run first: `python {{LORE}}/lore.py wire`. Show the user which files would change. Run `python {{LORE}}/lore.py wire --apply` only if the user clearly approves. In Codex, new hooks must also be trusted with `/hooks`.

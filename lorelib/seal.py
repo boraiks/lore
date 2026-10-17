@@ -102,7 +102,7 @@ def seal(notes_dir: Path, client: str, body: str, links, session_id: str | None 
     lines = _lines(body)
     links = [l for l in (clean_link(x) for x in links) if l]
     if not links:
-        raise ValueError("at least one --link is required (the area README if nothing else fits)")
+        raise ValueError("at least one --link is required (the area note, e.g. career/career, if nothing else fits)")
 
     findings = []
     for name, text in (("body", body), ("topic", topic), ("links", " ".join(links))):
@@ -140,7 +140,7 @@ def seal(notes_dir: Path, client: str, body: str, links, session_id: str | None 
         project = sessions.project_tag(cwd)
         ts = vault.stamp(now)
         meta = {"title": f"Session: {guard.clip(name, 60)}", "created": ts, "updated": ts,
-                "tags": ["session", client] + ([project] if project else []),
+                "tags": ["session", f"client/{client}"] + ([project] if project else []),
                 "status": "summarized", "type": "session",
                 "machine": machine or vault.machine_name(), "client": client,
                 "session": session_id, "summarizer": "agent"}

@@ -81,7 +81,7 @@ def reminder_text(client: str, session_id: str) -> str:
             "once; nothing else was written to memory). If meaningful work is done, before your "
             "final answer write 3-8 lines: what was done, what was decided and why, what is "
             "still open, the next concrete step. First use recall to find the notes the session "
-            "touched and link them with --link (or the area's README). Write the lines in the "
+            "touched and link them with --link (or the area note, e.g. career/career). Write the lines in the "
             f"user's language. Command: {cmd} . If this was small talk, if the user does not "
             "want it recorded, or if the session is private, write nothing and finish normally. "
             "Do not copy the raw chat, your reasoning, tool output, secrets or personal data.")

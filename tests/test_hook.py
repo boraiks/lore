@@ -149,7 +149,7 @@ class ReminderTest(HookCase):
     def test_outcome_stops_reminder(self):
         from lorelib import seal
         self.long_session()
-        seal.seal(self.notes, "claude", "Yapılan: a\nKarar: b\nSonraki: c", ["sessions/README"],
+        seal.seal(self.notes, "claude", "Yapılan: a\nKarar: b\nSonraki: c", ["sessions/sessions"],
                   session_id="sess-1", topic="t", state_dir=self.state, cfg=self.cfg, env={})
         self.assertIsNone(self.stop())
 

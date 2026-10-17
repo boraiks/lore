@@ -13,6 +13,7 @@ class ObsidianStarterTest(VaultCase):
         templates = json.loads((self.notes / ".obsidian" / "templates.json").read_text(encoding="utf-8"))
         self.assertEqual(templates["folder"], "_templates")
         graph = json.loads((self.notes / ".obsidian" / "graph.json").read_text(encoding="utf-8"))
+        self.assertTrue(graph["showTags"])  # client tags show as nodes
         queries = {g["query"] for g in graph["colorGroups"]}
         self.assertTrue({f"path:{a}" for a in ("career", "courses", "ideas", "research")} <= queries)
         template = (self.notes / "_templates" / "lore-note.md").read_text(encoding="utf-8")

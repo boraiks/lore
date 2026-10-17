@@ -197,7 +197,7 @@ class AgReminderTest(AgCase):
         from lorelib import seal, vault
         self.long()
         vault.seed(self.notes)
-        seal.seal(self.notes, "antigravity", "Yapılan: a\nKarar: b\nSonraki: c", ["sessions/README"],
+        seal.seal(self.notes, "antigravity", "Yapılan: a\nKarar: b\nSonraki: c", ["sessions/sessions"],
                   session_id=CID, state_dir=self.state, cfg=self.cfg, env={})
         self.assertIsNone(self.stop())
 
@@ -222,7 +222,7 @@ class AgSealTest(AgCase):
         args = dict(session_id=CID, topic="Ders planı", cwd=str(self.ws), now=NOW, machine="M",
                     state_dir=self.state, cfg=self.cfg, env={}, ag_roots=[self.root])
         args.update(kw)
-        return seal.seal(self.notes, "antigravity", self.BODY, ["courses/README"], **args)
+        return seal.seal(self.notes, "antigravity", self.BODY, ["courses/courses"], **args)
 
     def session_files(self):
         return sorted((self.notes / "sessions").glob("2*.md"))

@@ -52,6 +52,8 @@ def jot(notes_dir: Path, area: str, title: str, body: str = "", tags=(), status:
     if not slug:
         raise ValueError("the title is empty or cannot become a file name")
     tags = normalize_tags(tags)
+    if client and client != "manual" and f"client/{client}" not in tags:
+        tags.append(f"client/{client}")  # the graph can show where a note was written
     links = [l for l in (clean_link(x) for x in links) if l]
     body = body.strip("\n")
 
@@ -74,8 +76,8 @@ def jot(notes_dir: Path, area: str, title: str, body: str = "", tags=(), status:
         client = "manual"
         warnings.append("no client given, wrote 'manual' (--client claude|codex|antigravity)")
     if not links and not mesh.extract_links(body):
-        links = [f"{area}/README"]
-        warnings.append(f"no link given, linked to the area README: [[{area}/README]]")
+        links = [vault.hub(area)]
+        warnings.append(f"no link given, linked to the area note: [[{vault.hub(area)}]]")
     index = mesh.LinkIndex(notes_dir)
     for link in links:
         if index.resolve(link) is None:

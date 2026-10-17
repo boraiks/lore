@@ -20,14 +20,14 @@ Do not read the whole vault. If the task touches earlier work, search first and 
     python {{LORE}}/lore.py jot --area <area> --title "<title>" --tags a,b --client <claude|codex|antigravity> --link <area/note> --body "<text>"
 
 - Long text: `--body-file path` (UTF-8) or `--body-file -` (stdin). Other options: `--status draft|active|done`, `--type note|task|research|session`.
-- The command writes the header (title, created, updated, tags, status, type, machine, client) and builds the file name from the title. It never overwrites an existing file.
-- Every note links to at least one related note: pass `--link` or use `[[...]]` in the text. If neither is given, it links to the area README.
+- The command writes the header (title, created, updated, tags, status, type, machine, client) and builds the file name from the title. It never overwrites an existing file. It also tags the note `client/<client>`, so the Obsidian graph can show where it was written.
+- Every note links to at least one related note: pass `--link` or use `[[...]]` in the text. If neither is given, it links to the area note (`career/career`, `ideas/ideas`, ...).
 - Areas: `career` (jobs and internships: applications, interviews, CV), `courses` (course notes), `ideas` (project ideas), `research` (day-to-day research), `sessions` (session outcomes), `imports` (old chats brought over; do not write here by hand).
 
 ## At the end of a session: the outcome record
 When meaningful work is done, record the session outcome BEFORE your final answer. Do not write one for a simple question, a greeting or small talk.
 
-1. Use `recall` to find the notes the session really touched. Do not invent links; if nothing fits, use the area README.
+1. Use `recall` to find the notes the session really touched. Do not invent links; if nothing fits, use the area note (for example `career/career`).
 2. Write 3-8 lines: what was done, what was decided and why, what is still open, the next concrete step.
 3. Save it:
 

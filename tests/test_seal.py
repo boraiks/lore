@@ -43,6 +43,8 @@ class SealTest(SealCase):
                           meta["summarizer"], meta["type"]),
                          ("claude", "claude-sid-1", "M", "summarized", "agent", "session"))
         self.assertEqual(frontmatter.missing_fields(meta), [])
+        self.assertIn("client/claude", meta["tags"])
+        self.assertNotIn("claude", meta["tags"])
         found = outcome.extract(body)
         self.assertIn("- Karar: şirket başına bir not, çünkü arama kolay", found.block)
         self.assertIn("[[career/acme]]", found.block)
@@ -111,7 +113,7 @@ class SealTest(SealCase):
         self.assertFalse(list((self.notes / "sessions").glob("2*.md")))
 
     def test_links_build_graph_without_breaks(self):
-        self.seal(links=("career/acme", "career/README"))
+        self.seal(links=("career/acme", "career/career"))
         report = mesh.check(self.notes)
         self.assertEqual(report.broken, [])
         self.assertNotIn("career/acme.md", report.orphans)

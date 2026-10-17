@@ -43,7 +43,7 @@ class CliTest(VaultCase):
     def test_seal_cli(self):
         self.run_cli("seed")
         args = ("seal", "--client", "antigravity", "--session", "ag-1", "--topic", "Ders planı",
-                "--link", "courses/README")
+                "--link", "courses/courses")
         code, out, _ = self.run_cli(*args, "--body", "Yapılan: plan\nKarar: haftalık\nSonraki: başla")
         self.assertEqual(code, 0, out)
         self.assertIn("/sessions/2026-", out)
@@ -57,7 +57,7 @@ class CliTest(VaultCase):
         code, out, _ = self.run_cli("seal", "--client", "codex", "--session", "cx-1", "--private")
         self.assertEqual(code, 0, out)
         code, _, _ = self.run_cli("seal", "--client", "codex", "--session", "cx-1", "--link",
-                                  "ideas/README", "--body", "a\nb\nc")
+                                  "ideas/ideas", "--body", "a\nb\nc")
         self.assertEqual(code, 6)
 
     def test_mesh_reports_issue(self):

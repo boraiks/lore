@@ -19,16 +19,16 @@ class SeedTest(VaultCase):
     def test_creates_skeleton(self):
         created = vault.seed(self.notes, now=NOW, machine="M")
         for area in vault.AREAS:
-            self.assertTrue((self.notes / area / "README.md").is_file())
+            self.assertTrue((self.notes / area / f"{area}.md").is_file())
         self.assertTrue((self.notes / "home.md").is_file())
         self.assertEqual(len(created), len(vault.AREAS) + 1)
-        meta, _ = frontmatter.parse((self.notes / "ideas" / "README.md").read_text(encoding="utf-8"))
+        meta, _ = frontmatter.parse((self.notes / "ideas" / "ideas.md").read_text(encoding="utf-8"))
         self.assertEqual(frontmatter.missing_fields(meta), [])
 
     def test_never_overwrites(self):
-        self.put("ideas/README.md", "benim metnim")
+        self.put("ideas/ideas.md", "benim metnim")
         vault.seed(self.notes, now=NOW, machine="M")
-        self.assertEqual((self.notes / "ideas" / "README.md").read_text(encoding="utf-8"), "benim metnim")
+        self.assertEqual((self.notes / "ideas" / "ideas.md").read_text(encoding="utf-8"), "benim metnim")
         self.assertEqual(vault.seed(self.notes, now=NOW, machine="M"), [])
 
     def test_iter_notes_skips_hidden(self):

@@ -57,7 +57,7 @@ Long session and no outcome yet? The hook reminds the agent once, right before i
 ```
 lore-vault/
 ├── home.md            home page
-├── career/            jobs and internships: applications, interviews, CV
+├── career/            jobs and internships: applications, interviews, CV (area note: career.md)
 ├── courses/           course notes
 ├── ideas/             project ideas
 ├── research/          day-to-day research
@@ -78,7 +78,10 @@ lore finds the vault through the `LORE_HOME` environment variable, then `~/.lore
 - Open the vault folder itself with "Open folder as vault": the areas sit at its root, with no extra `notes/` level.
 - Hidden folders (`.lore`, `.obsidian`) stay out of sight, and lore ignores `_templates` and the agent files when it searches or checks links.
 - To write notes by hand with the same header the agents use, enable **Settings → Core plugins → Templates**; the template folder is already set to `_templates`.
-- The graph view colours notes by area.
+- The graph shows three things at once:
+  - **colour = area**: each area folder has its own colour, and its area note (`career/career.md`, ...) is the hub its notes link to;
+  - **links = topic**: `[[links]]` connect notes about the same thing;
+  - **`#client/...` tags = where a note was written**: `jot` and `seal` tag every note with its client (`#client/claude`, `#client/codex`, `#client/antigravity`). With the graph's **Tags** option on, notes cluster around their client; turn it off for a pure topic view.
 
 lore creates these Obsidian files only when they are missing, so an existing Obsidian setup is never changed.
 
@@ -113,7 +116,7 @@ which does three things:
 
 Your notes are safe across updates:
 - **They are not in the code folder.** `git pull` has nothing of yours to change.
-- **Only lore's own files are refreshed,** never notes, area READMEs or Obsidian settings; missing ones are added.
+- **Only lore's own files are refreshed,** never notes, area notes or Obsidian settings; missing ones are added.
 - **Note format changes never rewrite notes on their own.** If a future version ever needs to change existing notes, that will be a separate command that shows a dry run first.
 
 ## Commands

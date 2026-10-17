@@ -56,7 +56,7 @@ VAULT = locate()[0]
 NOTES_DIR = VAULT  # notes live at the vault root
 STATE_DIR = VAULT / ".lore" / "state"  # reminder and private markers
 
-# area -> (README title, what goes there)
+# area -> (title of its area note, what goes there)
 AREAS = {
     "career": ("Career", "Jobs and internships. One note per company or application: role, "
                          "date applied, status, interviews, next step. CV and interview "
@@ -70,6 +70,12 @@ AREAS = {
                            "clutter the graph; do not write here by hand."),
 }
 HOME = "home"
+
+
+def hub(area: str) -> str:
+    """Link target of an area's own note, <area>/<area>.md: the graph shows it by the area's
+    name, and every note in the area can link to it."""
+    return f"{area}/{area}"
 
 
 def slugify(text: str, max_len: int = 60) -> str:
@@ -135,16 +141,16 @@ def _seed_note(title: str, tags: list[str], body: str, now, machine) -> str:
 
 
 def seed(notes_dir: Path, now: datetime | None = None, machine: str | None = None) -> list[Path]:
-    """Create missing area folders, area READMEs and the home note. Never overwrites."""
+    """Create missing area folders, area notes and the home note. Never overwrites."""
     files = {notes_dir / f"{HOME}.md": _seed_note(
         "Home", ["home"],
         "Home of your second brain. Never write personal data, passwords, keys, tokens, ID or "
         "financial numbers here.\n\n"
-        + "\n".join(f"- [[{a}/README|{t}]]: {d.split('.')[0]}." for a, (t, d) in AREAS.items()),
+        + "\n".join(f"- [[{hub(a)}|{t}]]: {d.split('.')[0]}." for a, (t, d) in AREAS.items()),
         now, machine)}
     for area, (title, desc) in AREAS.items():
-        files[notes_dir / area / "README.md"] = _seed_note(
-            title, ["readme", area], f"{desc}\n\nHome: [[{HOME}]]", now, machine)
+        files[notes_dir / area / f"{area}.md"] = _seed_note(
+            title, ["area", area], f"{desc}\n\nHome: [[{HOME}]]", now, machine)
     return _create_missing(files)
 
 
@@ -188,5 +194,6 @@ def obsidian_starter(vault_dir: Path) -> list[Path]:
         obsidian / "templates.json": json.dumps(
             {"folder": "_templates", "dateFormat": "YYYY-MM-DD", "timeFormat": "HH:mm"},
             indent=2) + "\n",
-        obsidian / "graph.json": json.dumps({"colorGroups": groups}, indent=2) + "\n",
+        obsidian / "graph.json": json.dumps({"showTags": True, "colorGroups": groups},
+                                            indent=2) + "\n",
     })

@@ -23,7 +23,7 @@ Below, `LORE` stands for that folder's full path and `VAULT` for the full path o
     python LORE/lore.py home "VAULT"
 
 This saves the vault's location to `~/.lore.json` and creates only what is missing:
-- the area folders (`career/`, `courses/`, `ideas/`, `research/`, `sessions/`, `imports/`), their READMEs and `home.md`;
+- the area folders (`career/`, `courses/`, `ideas/`, `research/`, `sessions/`, `imports/`), each with its own area note (`career/career.md`, ...), and `home.md`;
 - `AGENTS.md` (lore's rules, with the path to the code filled in), `CLAUDE.md` and `GEMINI.md`, plus the skills in `.claude/skills/` and `.agents/skills/`. If the user already has one of these files, it is kept and lore's version is written next to it as `<file>.new`; tell the user;
 - an Obsidian note template (`_templates/lore-note.md`) and graph colours (`.obsidian/graph.json`).
 
@@ -61,7 +61,7 @@ If the user says no, skip this step. lore still works: the agent records outcome
 Tell the user:
 - Open the vault folder itself in Obsidian ("Open folder as vault"); the areas sit at its root.
 - To create notes by hand with lore's header, enable **Settings → Core plugins → Templates**; the template folder `_templates` is already set.
-- The graph view colours notes by area.
+- The graph view colours notes by area, and shows `#client/...` tags (where a note was written) as their own nodes; turn Tags off in the graph settings for a pure topic view.
 
 ## Updating later
 When the user asks to update lore, run `python LORE/lore.py update` (`LORE` is the path named at the top of the vault's `AGENTS.md`). It:

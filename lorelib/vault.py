@@ -90,13 +90,25 @@ def rel(path: Path, notes_dir: Path) -> str:
     return path.relative_to(notes_dir).as_posix()
 
 
+# Files at the vault root that lead AI clients to lore; instructions, not notes.
+AGENT_FILES = ("AGENTS.md", "CLAUDE.md", "GEMINI.md")
+
+
+def _is_note_file(parts: tuple[str, ...]) -> bool:
+    """Hidden folders (.lore, .obsidian, .trash) and folders starting with "_" (templates)
+    hold no notes; neither do the agent pointer files at the root."""
+    if any(part.startswith((".", "_")) for part in parts):
+        return False
+    return not (len(parts) == 1 and parts[0].lower() in {f.lower() for f in AGENT_FILES})
+
+
 def iter_files(notes_dir: Path):
-    """All files in the vault, skipping hidden folders such as .lore, .obsidian and .trash."""
+    """All note files and attachments in the vault."""
     if not notes_dir.is_dir():
         return []
     return sorted(
         p for p in notes_dir.rglob("*")
-        if p.is_file() and not any(part.startswith(".") for part in p.relative_to(notes_dir).parts)
+        if p.is_file() and _is_note_file(p.relative_to(notes_dir).parts)
     )
 
 
@@ -133,6 +145,10 @@ def seed(notes_dir: Path, now: datetime | None = None, machine: str | None = Non
     for area, (title, desc) in AREAS.items():
         files[notes_dir / area / "README.md"] = _seed_note(
             title, ["readme", area], f"{desc}\n\nHome: [[{HOME}]]", now, machine)
+    return _create_missing(files)
+
+
+def _create_missing(files: dict) -> list[Path]:
     created = []
     for path, text in files.items():
         try:
@@ -141,3 +157,50 @@ def seed(notes_dir: Path, now: datetime | None = None, machine: str | None = Non
         except FileExistsError:
             pass
     return created
+
+
+def agent_pointers(vault_dir: Path, repo: Path | None = None) -> list[Path]:
+    """Short AGENTS.md / CLAUDE.md / GEMINI.md at the vault root, so an AI client opened in the
+    vault finds lore's rules and commands. Existing files are never touched."""
+    repo_posix = Path(repo or REPO).as_posix()
+    text = (f"# lore vault\n\nThis folder is a lore vault: personal notes kept with lore. The lore "
+            f"code lives in {repo_posix}.\n\nBefore working here, read {repo_posix}/AGENTS.md and "
+            f"follow it. Run lore commands as `python {repo_posix}/lore.py <command>`, for example "
+            f"`python {repo_posix}/lore.py recall \"<topic>\"`.\n\nWritten by `lore.py home`; "
+            f"this file is an instruction, not a note.\n")
+    importing = text + f"\n@{repo_posix}/AGENTS.md\n"  # Claude Code and Gemini read @imports
+    return _create_missing({vault_dir / "AGENTS.md": text, vault_dir / "CLAUDE.md": importing,
+                            vault_dir / "GEMINI.md": importing})
+
+
+# Obsidian graph colours per area (RGB as Obsidian stores it: one integer).
+_GRAPH_COLORS = {"career": 0xE8A33D, "courses": 0x4C9AFF, "ideas": 0xB37FEB,
+                 "research": 0x36B37E, "sessions": 0x8993A4, "imports": 0x6B778C}
+_TEMPLATE = """---
+title: "{{title}}"
+created: {{date}}T{{time}}
+updated: {{date}}T{{time}}
+tags: []
+status: active
+type: note
+machine: ""
+client: manual
+---
+
+Related: [[home]]
+"""
+
+
+def obsidian_starter(vault_dir: Path) -> list[Path]:
+    """A note template with lore's header and graph colours per area. Each file is created
+    only if missing: Obsidian's own settings are never changed."""
+    obsidian = vault_dir / ".obsidian"
+    groups = [{"query": f"path:{area}", "color": {"a": 1, "rgb": rgb}}
+              for area, rgb in _GRAPH_COLORS.items()]
+    return _create_missing({
+        vault_dir / "_templates" / "lore-note.md": _TEMPLATE,
+        obsidian / "templates.json": json.dumps(
+            {"folder": "_templates", "dateFormat": "YYYY-MM-DD", "timeFormat": "HH:mm"},
+            indent=2) + "\n",
+        obsidian / "graph.json": json.dumps({"colorGroups": groups}, indent=2) + "\n",
+    })

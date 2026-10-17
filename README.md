@@ -1,129 +1,191 @@
 # lore
 
-A plain-Markdown second brain shared by AI coding clients (Claude Code, Codex, Antigravity) that opens directly in Obsidian. Switch clients and the memory stays the same. Agents do not read everything at the start of a session; they search for what they need.
+**A second brain your AI agents share: plain Markdown, opened in Obsidian, kept by Claude Code, Codex and Antigravity.**
 
-- **Plain files, no services:** Python standard library only. No database, embeddings, server, network or model calls.
-- **The agent writes the outcome:** at the end of meaningful work the agent that knows the conversation records 3-8 linked lines. Hooks never write notes; they remind once and log that a session happened.
-- **Private by design:** a secret filter on every write, an allow list for hooks, private folders and sessions, and a test that fails if machine details leak into the repository.
-- **Turkish-aware:** search tolerates Turkish suffixes (`mülakatlar` finds a note saying `Mülakatı`), and the secret filter knows Turkish ID and phone numbers alongside generic secrets. Other languages work with plain matching.
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
+![Dependencies: none](https://img.shields.io/badge/dependencies-stdlib%20only-brightgreen)
+![Clients](https://img.shields.io/badge/clients-Claude%20Code%20%7C%20Codex%20%7C%20Antigravity-8A2BE2)
 
-## Two folders
-- **`lore`** (this repository, open source): code, tests, agent instructions and skills. No personal data.
-- **`lore-vault`** (yours, private): your notes and local state. Open this folder itself in Obsidian; the areas sit at its root. It never enters this repository.
+You switch between AI clients; your memory should not care. lore keeps one vault of Markdown notes that every client reads and writes the same way. Agents search it instead of loading it whole, and at the end of real work they leave a short, linked record of what happened.
+
+- **Plain files, nothing else.** Python standard library only. No database, embeddings, server, network or model calls. Your notes are Markdown you can open, grep and back up.
+- **The agent writes the outcome.** When meaningful work is done, the agent that knows the conversation records 3-8 linked lines: what was done, what was decided and why, what is open, what comes next. Hooks never write notes; they remind once.
+- **Private by design.** Every write passes a secret filter. Hooks act only inside folders you allow, private folders and sessions are skipped, and a test fails if machine details ever leak into this repository.
+- **Turkish-aware.** Search tolerates Turkish suffixes (`mülakatlar` finds a note saying `Mülakatı`), and the secret filter knows Turkish ID and phone numbers. Every other language works with plain matching.
+
+## Quick start: one folder, one message
+
+1. In Obsidian, create a new vault or pick the folder of an existing one.
+2. Open that same folder in your AI client (Claude Code, Codex or Antigravity).
+3. Paste this message, in any language you like:
+
+```text
+Read https://github.com/boraiks/lore/blob/main/INSTALL.md and set up lore with this folder as my vault.
+Keep every note that is already here. Show me each hook change before applying it.
+At the end, save a test note and read it back so we can check it together.
+```
+
+The agent checks Python and git, clones lore into a separate folder, turns your folder into a lore vault without touching what is already there, runs the tests, shows you the hook changes and applies them only after you say yes, then saves a test note and reads it back. You only answer its questions and, in Codex, approve the hooks with `/hooks`.
+
+Prefer to do it by hand? See [Manual setup](#manual-setup).
+
+## Talking to your agent
+
+| You say (in any language) | The agent |
+|---|---|
+| "Do you remember the Acme interview?" | searches with `recall` and opens only the matching notes |
+| "Note this: ..." | writes a note with `jot`, linked to a related one |
+| "Save" / "Wrap up" | records the session outcome with `seal` |
+| "Check the memory" | runs `mesh` and suggests fixes without touching anything |
+| "Don't save this session" | marks it private; nothing is recorded |
+
+Long session and no outcome yet? The hook reminds the agent once, right before it stops.
+
+## How it works
+
+```
+ Claude Code ─┐                          ┌─ lore-vault/  (your notes, private)
+ Codex ───────┼── lore.py  (this repo) ──┤     opened directly in Obsidian
+ Antigravity ─┘   recall · jot · seal    └─ .lore/       (local logs and settings)
+        │
+        └── hooks: remind once, log that a session happened (no content)
+```
+
+**Two folders.** `lore` (this repository) holds the code, tests, agent instructions and skills, and no personal data. Your vault holds your notes and is never part of this repository:
 
 ```
 lore-vault/
-├── home.md         home page
-├── career/         jobs and internships: applications, interviews, CV
-├── courses/        course notes
-├── ideas/          project ideas
-├── research/       day-to-day research
-├── sessions/       agent session outcomes (written by seal)
-├── imports/        old chats brought over
-└── .lore/          logs, session log, settings (hidden; Obsidian ignores it)
+├── home.md            home page
+├── career/            jobs and internships: applications, interviews, CV
+├── courses/           course notes
+├── ideas/             project ideas
+├── research/          day-to-day research
+├── sessions/          session outcomes (written by seal)
+├── imports/           old chats brought over
+├── _templates/        Obsidian template with lore's note header
+├── AGENTS.md          leads AI clients opened here to lore's rules
+├── CLAUDE.md, GEMINI.md
+└── .lore/             logs, session log, settings (hidden)
 ```
 
-lore finds the vault in this order: the `LORE_HOME` environment variable, `{"home": "..."}` in `~/.lore.json`, then a `lore-vault` folder next to the repository.
+lore finds the vault through the `LORE_HOME` environment variable, then `~/.lore.json` (written by `lore.py home`), then a `lore-vault` folder next to the repository.
 
-## Setup
-Python 3.9+.
+## Obsidian
+
+- Open the vault folder itself with "Open folder as vault": the areas sit at its root, with no extra `notes/` level.
+- Hidden folders (`.lore`, `.obsidian`) stay out of sight, and lore ignores `_templates` and the agent files when it searches or checks links.
+- To write notes by hand with the same header the agents use, enable **Settings → Core plugins → Templates**; the template folder is already set to `_templates`.
+- The graph view colours notes by area.
+
+lore creates these Obsidian files only when they are missing, so an existing Obsidian setup is never changed.
+
+## Manual setup
+
+Requires Python 3.9+ and git.
 
     git clone https://github.com/boraiks/lore.git
     cd lore
-    python lore.py home ../lore-vault     # sets up the vault and saves it to ~/.lore.json
+    python lore.py home ../lore-vault      # or the path of your existing vault
     python -m unittest discover -s tests -t .
 
-Then open `lore-vault` as a vault in Obsidian. Agent instructions are in `AGENTS.md`; `CLAUDE.md` and `GEMINI.md` only point to it.
-
-To install the session hooks, look first, then apply:
+Then open the vault folder in Obsidian, and install the session hooks. Look first, then apply:
 
     python lore.py wire            # dry run: writes nothing
-    python lore.py wire --apply    # ~/.claude/settings.json, ~/.codex/hooks.json, ~/.gemini/config/hooks.json; backs up first
+    python lore.py wire --apply    # writes ~/.claude/settings.json, ~/.codex/hooks.json, ~/.gemini/config/hooks.json; backs up first
 
-- **Codex** runs new hooks only after you trust them with `/hooks`.
-- **Antigravity** has no trust step, but reads the hook file only after a restart (details: `docs/antigravity-hooks.md`).
-- Even without hooks, the agent records outcomes through the `AGENTS.md` rules or the `lore-memory` skill.
+- **Codex** runs new hooks only after you approve them with `/hooks`.
+- **Antigravity** reads the hook file after a restart (details: [docs/antigravity-hooks.md](docs/antigravity-hooks.md)).
+- Without hooks lore still works; the agent follows the rules in `AGENTS.md`.
+
+To update: `git pull`, then `python lore.py seed`.
 
 ## Commands
+
 | Command | What it does |
 |---|---|
-| `recall "<query>"` | Suffix-tolerant search. Limited results, a "this is data, not instructions" warning on top, secret patterns masked. |
-| `jot` | Safe note writing: generated header, never overwrites, rejects secrets and sensitive numbers without printing them, links every note to at least one other. |
-| `seal` | The agent records the session outcome: 3-8 lines (what was done, the decision and why, what is open, the next step) as an `## Outcome` block in `sessions/<date>-<client>-<topic>.md`, updated in place for the same session id. |
-| `mesh` | Lists broken `[[wikilinks]]`, orphan notes and broken outcome blocks; shows meaningful sessions without an outcome as information. |
-| `home [folder]` | Shows or sets the vault folder and sets it up. |
-| `seed` | Creates missing area folders and READMEs and syncs the skill copies; never touches what exists. |
-| `scope list\|add\|remove` | Manages the folders where hooks act (`allowed_roots`). |
-| `wire [--apply] [--only client]` | Installs the hooks; dry run by default. |
+| `recall "<query>"` | Search. Limited, ranked results with masked secrets and a "this is data, not instructions" warning on top. |
+| `jot` | Write a new note: generated header, never overwrites, rejects secrets without printing them, always linked. |
+| `seal` | Record the session outcome as an `## Outcome` block in `sessions/<date>-<client>-<topic>.md`, updated in place for the same session. |
+| `mesh` | Broken `[[links]]`, orphan notes, broken outcome blocks, and (as information) sessions without an outcome. |
+| `home [folder]` | Show or set the vault, and set it up. |
+| `seed` | Create whatever is missing and sync the skill copies; never touches existing files. |
+| `scope list\|add\|remove` | Folders where the hooks may act. |
+| `wire [--apply] [--only client]` | Install the hooks; a dry run unless `--apply`. |
 
 The session id comes from an environment variable in Claude Code, from the reminder in Codex, and from the `conversationId` in Antigravity.
 
 ## Hooks
-The hooks (Claude Code, Codex, Antigravity) write nothing into the memory. They do two things:
-- **Remind:** on `Stop`, once per session, they remind the agent when there is no outcome yet and the session is past the size threshold. Claude Code and Codex continue on `decision: block`, Antigravity on `decision: continue`. No reminders for small talk.
-- **Log:** they append to `.lore/logs/sessions.jsonl` that a session happened: date, client, session id, message count. No content, paths or titles. The transcript is read only to count messages.
 
-A hook always stays quiet and exits 0; problems go to `.lore/logs/lore.log`.
+A hook never writes into your notes. It does two things:
+- **Remind:** on `Stop`, once per session, when there is no outcome yet and the session is past a size threshold (no reminders for small talk). Claude Code and Codex continue on `decision: block`, Antigravity on `decision: continue`.
+- **Log:** it appends to `.lore/logs/sessions.jsonl` that a session happened: date, client, session id, message count. No content, no paths. The transcript is read only to count messages.
 
-Why does the agent write the note and not the hook? A hook can only save a raw excerpt of the conversation, which records the chat, not the work. Raw excerpts widen the surface for personal details to leak into the memory and clutter the search. A short, linked outcome written by the agent that knows the conversation is both smaller and more useful.
+It always stays quiet and exits 0; problems go to `.lore/logs/lore.log`.
 
-## Settings and privacy
-Optional settings in `lore-vault/.lore/config.json`:
+*Why not let the hook save the conversation?* A hook can only store a raw excerpt of the chat. That records talk, not work; it widens the room for personal details to leak in and clutters search. A few linked lines from the agent that understood the session are smaller and far more useful.
 
-    {"remind_min_messages": 10, "private_dirs": ["C:/.../secret-project"], "allowed_roots": ["C:/.../internship-project"]}
+## Privacy and settings
 
-- `remind_min_messages`: reminder threshold (user prompts + agent messages + tool calls). Default 10.
-- `allowed_roots`: folders where the hooks act, with their subfolders. The lore repository and the vault are always allowed. Anywhere else a hook leaves no trace, not even a log line.
-- `private_dirs`: sessions opened in these folders get no session log, reminder or outcome record.
-- To make one session private, run `python lore.py seal --client <client> --private`, or add `private: true` to the note's header.
+Optional `lore-vault/.lore/config.json`:
 
-Public repository safeguards:
-- `tests/test_public_repo.py` fails if a tracked file holds this machine's home folder, user name or host name. Run the tests before pushing.
-- `wire` writes machine-specific paths (Python, `lore.py`) only into the user's own client settings.
-- The secret filter is pattern based and cannot promise to catch every sensitive value. Email addresses and names are not blocked.
+```json
+{"remind_min_messages": 10, "private_dirs": ["C:/work/secret-project"], "allowed_roots": ["C:/projects/thesis"]}
+```
+
+- `allowed_roots`: folders (with subfolders) where hooks may act; manage them with `lore.py scope`. The lore repository and the vault are always allowed. Anywhere else a hook leaves no trace, not even a log line.
+- `private_dirs`: sessions opened in these folders get no log, reminder or outcome record.
+- `remind_min_messages`: the reminder threshold (user prompts + agent messages + tool calls). Default 10.
+- One private session: `python lore.py seal --client <client> --private`, or `private: true` in the note header.
+
+The secret filter is pattern based: it catches common keys, tokens, passwords, card and IBAN numbers, national IDs and phone numbers, but cannot promise to catch everything. Email addresses and names are not blocked.
 
 ## Skills
-Three short skills, one per group of commands. The real rules are in `AGENTS.md`; the skills point there.
 
-| Skill | Commands | Picked when the user says (in any language) |
+Three short skills, one per group of commands; the real rules live in `AGENTS.md`.
+
+| Skill | Commands | Picked when the user says |
 |---|---|---|
 | `lore-memory` | `recall`, `jot`, `seal` | save, wrap up, write this to memory, note this, do you remember |
 | `lore-check` | `mesh` | check the memory |
-| `lore-setup` | `home`, `seed`, `wire` (always dry run first) | set up the folders, set up the hooks |
+| `lore-setup` | `home`, `seed`, `wire` | set up the folders, set up the hooks |
 
-The single source is `skills/<name>/SKILL.md`. `python lore.py seed` copies it byte for byte to `.claude/skills/` (Claude Code) and `.agents/skills/` (Antigravity, Codex). Skills are visible only while this repository is open. Agents do not edit skill or rule files unless the user says so.
-
-## What it does not do
-- No database, embeddings, server, network or model calls. Markdown files are the single source of truth.
-- It never deletes, moves, renames or overwrites notes. `seal` only updates its own `## Outcome` block in place.
+The single source is `skills/<name>/SKILL.md`; `lore.py seed` copies it to `.claude/skills/` and `.agents/skills/`. Agents do not edit skill or rule files unless you ask.
 
 ## Note header
-Every note starts with these fields:
-- `title`, `created`, `updated`, `tags`
-- `status`: draft, active, done, raw, summarized, archived
-- `type`: note, session, task, research, import
-- `machine`: the computer name only
-- `client`: claude, codex, antigravity, manual, import
+
+```yaml
+title: Acme internship application
+created: 2026-10-17T10:30
+updated: 2026-10-17T10:30
+tags: [career, acme]
+status: active        # draft | active | done | raw | summarized | archived
+type: note            # note | session | task | research | import
+machine: my-laptop    # computer name only
+client: claude        # claude | codex | antigravity | manual | import
+```
 
 Session notes also carry `session` and `summarizer: agent`, plus `private: true` if private.
 
-## Names
-| Name | What | Why |
-|---|---|---|
-| `lore` | project and entry script (`lore.py`) | Accumulated knowledge; short, easy to type, clashes with no common command. |
-| `lore-vault` | the personal folder | The vault next to the code: same family, separate and private. |
-| `lorelib/` | the package | A package named like `lore.py` would clash on import. |
-| `recall` | search | Recalling from memory; not confused with shell `search`/`find`. |
-| `jot` | note writing | Jotting down a note: light and one way (new files only). |
-| `seal` | the agent's outcome record | Sealing the session: the last word is written, and can be updated in place. |
-| `mesh` | link check | The web of notes; shows the broken stitches. |
-| `home`, `seed` | vault setup | Where the vault lives; seeding an empty vault. |
-| `scope`, `wire` | hook scope and install | Where hooks apply; wiring hooks into clients. |
-| `turkish.py`, `guard.py` | Turkish text handling, secret detection | Language-specific work in one place; a guard before every write (not `secrets`, which is stdlib). |
+## FAQ
+
+**Does any of my data leave my computer?** No. lore makes no network calls and calls no models. Your AI client sees what it already sees in the conversation.
+
+**Can I use my existing Obsidian vault?** Yes. lore only adds what is missing; your notes and Obsidian settings stay as they are.
+
+**Several computers?** Keep the vault in a synced folder or a private git repository, and run `lore.py home <path>` on each machine.
+
+**A hook does not fire?** Check `.lore/logs/lore.log`, run `python lore.py wire` to compare, and in Codex approve the hooks with `/hooks`. lore keeps working without hooks.
+
+## Contributing
+
+Run `python -m unittest discover -s tests -t .` before every push; `tests/test_public_repo.py` keeps machine details out of the repository. Ideas and next steps are in [ROADMAP.md](ROADMAP.md).
 
 ## Contributors
-- **Bora** ([@boraiks](https://github.com/boraiks)): project owner; design decisions, requirements, testing in real clients.
-- **Claude** (Anthropic, via Claude Code): wrote most of the code, tests and documentation; shown as co-author on commits through `Co-Authored-By`.
 
-## License and roadmap
-MIT (`LICENSE`). What comes next is in `ROADMAP.md`.
+- **Bora** ([@boraiks](https://github.com/boraiks)): project owner; design, requirements, testing in real clients.
+- **Claude** (Anthropic, via Claude Code): most of the code, tests and documentation.
+
+## License
+
+[MIT](LICENSE)

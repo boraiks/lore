@@ -54,6 +54,9 @@ class HomeCommandTest(VaultCase):
         self.assertTrue((target / "home.md").is_file())
         self.assertTrue((target / "career" / "README.md").is_file())
         self.assertFalse((target / "notes").exists())  # no notes/ subfolder any more
+        for name in ("AGENTS.md", "CLAUDE.md", "GEMINI.md", "_templates/lore-note.md",
+                     ".obsidian/graph.json"):
+            self.assertTrue((target / name).is_file(), name)
         with mock.patch.dict(os.environ, {"LORE_HOME": ""}):
             self.assertEqual(vault.locate()[0], target.resolve())
 

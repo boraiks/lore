@@ -171,8 +171,10 @@ def _home(args) -> int:
               "The folder does not exist yet. To set it up: python lore.py home <folder>")
         return 0
     path = vault.set_home(Path(args.folder))
-    created = vault.seed(path)
+    created = vault.seed(path) + vault.agent_pointers(path) + vault.obsidian_starter(path)
     print(f"VAULT: {path.as_posix()} (saved to ~/.lore.json)")
+    for item in created:
+        print("CREATED:", item.as_posix())
     print(f"{len(created)} files created; existing files untouched. "
           "Open this folder as a vault in Obsidian.")
     if vault.locate()[1] == "LORE_HOME":
@@ -198,6 +200,8 @@ def main(argv=None, notes_dir: Path | None = None) -> int:
 
     if args.cmd == "seed":
         created = vault.seed(notes_dir)
+        if real_vault:  # AI-client pointers and Obsidian starter files, only where missing
+            created += vault.agent_pointers(notes_dir) + vault.obsidian_starter(notes_dir)
         for path in created:
             print("CREATED:", _display(path, notes_dir))
         print(f"{len(created)} files created; existing files untouched.")

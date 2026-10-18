@@ -225,6 +225,70 @@ def set_me(vault_dir: Path, body: str, now: datetime | None = None) -> Path:
     return path
 
 
+# Asked once, at setup or in the first session after it, while me.md has no answers.
+INTRO_QUESTIONS = (
+    "What will you use this memory for? (suggested areas: jobs and internships, courses, "
+    "project ideas, research, personal, work; any other area is fine)",
+    "What are you working on these days?",
+    "How do you like answers: short or detailed, and in which language?",
+    "In which language should notes be written?",
+)
+_SKIPPED = "_The user skipped the intro on {date}. Do not ask again unless they bring it up._"
+
+
+def _me_lines(text: str) -> set[str]:
+    return {line.strip() for line in text.splitlines() if line.strip()}
+
+
+def me_is_blank(vault_dir: Path) -> bool:
+    """True while me.md holds nothing beyond the template: the intro has not happened yet."""
+    path = vault_dir / f"{ME}.md"
+    if not path.exists():
+        return True
+    _, body = frontmatter.parse(read(path))
+    return not (_me_lines(body) - _me_lines(_ME_BODY))
+
+
+def skip_intro(vault_dir: Path, now: datetime | None = None) -> Path:
+    """Remember that the user skipped the intro, so agents stop offering it."""
+    date = (now or datetime.now()).strftime("%Y-%m-%d")
+    return set_me(vault_dir, _ME_BODY.replace(f"\n\nHome: [[{HOME}]]", "")
+                  + "\n\n" + _SKIPPED.format(date=date), now)
+
+
+# The note Obsidian puts in every vault it creates. Recognised only while it is unchanged.
+WELCOME = "Welcome.md"
+_WELCOME_START = "This is your new *vault*."
+_WELCOME_END = "delete this note and make the vault your own."
+
+
+def obsidian_welcome(vault_dir: Path) -> Path | None:
+    path = vault_dir / WELCOME
+    if not path.is_file():
+        return None
+    text = read(path).strip()
+    if (text.startswith(_WELCOME_START) and text.endswith(_WELCOME_END)
+            and len(text.splitlines()) <= 7):
+        return path
+    return None
+
+
+def remove_welcome(vault_dir: Path) -> Path:
+    """Move Obsidian's untouched Welcome note to the vault's .trash (Obsidian's own bin).
+    Call only after the user said yes. An edited Welcome.md is a note and is refused."""
+    path = obsidian_welcome(vault_dir)
+    if path is None:
+        raise ValueError(f"no untouched {WELCOME} from Obsidian here; nothing was moved")
+    dest = vault_dir / ".trash" / WELCOME
+    n = 1
+    while dest.exists():
+        n += 1
+        dest = vault_dir / ".trash" / f"Welcome {n}.md"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    os.replace(path, dest)
+    return dest
+
+
 def _create_missing(files: dict) -> list[Path]:
     created = []
     for path, text in files.items():
@@ -255,22 +319,47 @@ Related: [[home]]
 """
 
 
-def obsidian_starter(vault_dir: Path) -> list[Path]:
-    """A note template with lore's header, graph colours per area with tags shown, and the
-    agent files excluded from the graph. Each file is created only if missing: Obsidian's
-    own settings are never changed."""
+def _fill_json(path: Path, wanted: dict) -> str | None:
+    """Create the settings file, or fill keys that are missing or empty in it.
+    A key the user set to something is kept; a file that is not valid JSON is left alone."""
+    if not path.exists():
+        write_new(path, json.dumps(wanted, indent=2) + "\n")
+        return "created"
+    try:
+        data = json.loads(read(path) or "{}")
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    blank = {k: v for k, v in wanted.items() if data.get(k) in (None, "", [], {})}
+    if not blank:
+        return None
+    data.update(blank)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
+    os.replace(tmp, path)
+    return "filled"
+
+
+def obsidian_starter(vault_dir: Path) -> list[tuple[Path, str]]:
+    """A note template with lore's header, graph colours per area, and the agent files
+    excluded from the graph. A vault made in Obsidian already holds blank settings files,
+    so missing or empty keys are filled in; anything the user set stays as it is.
+    Returns (path, "created" | "filled")."""
     obsidian = vault_dir / ".obsidian"
     groups = [{"query": f"path:{area}", "color": {"a": 1, "rgb": rgb}}
               for area, rgb in _GRAPH_COLORS.items()]
-    return _create_missing({
-        vault_dir / "_templates" / "lore-note.md": _TEMPLATE,
-        obsidian / "templates.json": json.dumps(
-            {"folder": "_templates", "dateFormat": "YYYY-MM-DD", "timeFormat": "HH:mm"},
-            indent=2) + "\n",
-        obsidian / "graph.json": json.dumps({"showTags": True, "colorGroups": groups},
-                                            indent=2) + "\n",
+    changes = [(p, "created") for p in _create_missing(
+        {vault_dir / "_templates" / "lore-note.md": _TEMPLATE})]
+    for path, wanted in (
+        (obsidian / "templates.json",
+         {"folder": "_templates", "dateFormat": "YYYY-MM-DD", "timeFormat": "HH:mm"}),
+        (obsidian / "graph.json", {"colorGroups": groups}),
         # "Excluded files": the agent files and the template are not notes, so keep them out
         # of the graph, search and quick switcher.
-        obsidian / "app.json": json.dumps(
-            {"userIgnoreFilters": [*AGENT_FILES, "_templates/"]}, indent=2) + "\n",
-    })
+        (obsidian / "app.json", {"userIgnoreFilters": [*AGENT_FILES, "_templates/"]}),
+    ):
+        action = _fill_json(path, wanted)
+        if action:
+            changes.append((path, action))
+    return changes

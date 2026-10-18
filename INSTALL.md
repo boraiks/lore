@@ -25,12 +25,16 @@ Below, `LORE` stands for that folder's full path and `VAULT` for the full path o
 This saves the vault's location to `~/.lore.json` and creates only what is missing:
 - `home.md`, `me.md` (about the user, filled in the next step), and the two areas lore needs: `inbox/` (notes without an area yet) and `sessions/` (session outcomes);
 - `AGENTS.md` (lore's rules, with the path to the code filled in), `CLAUDE.md` and `GEMINI.md`, plus the skills in `.claude/skills/` and `.agents/skills/`. If the user already has one of these files, it is kept and lore's version is written next to it as `<file>.new`; tell the user;
-- an Obsidian note template (`_templates/lore-note.md`) and starter settings (graph colours and tags, the agent files hidden from the graph).
+- an Obsidian note template (`_templates/lore-note.md`) and starter settings: graph colours per area, and the agent files and template hidden from the file list, graph and search. If Obsidian already made its settings files, lore fills in only the keys that are missing or empty (`FILLED:` in the output); anything the user set stays.
 
 Notes already in the folder stay as they are. lore works with any Markdown next to them.
 
-## 4. Get to know the user (short, every question can be skipped)
-Ask these one or two at a time, in the user's language, and say they can skip any of them:
+If the output has an `ASK:` line about `Welcome.md` (the note Obsidian puts in a new vault, still unchanged), ask the user whether to remove it. Only on a clear yes run `python LORE/lore.py welcome --remove`; it moves the note to the vault's `.trash`, where Obsidian can restore it. The `NEXT:` line leads to step 4.
+
+## 4. Get to know the user (do not skip this step)
+Do this now, before the tests and the hooks, even if the user's message did not mention it. Do not leave it for the end or present it as optional: the user may skip any question, you may not skip asking.
+
+Run `python LORE/lore.py me`; while `me.md` is blank it lists these questions. Ask them one or two at a time, in the user's language, and say they can skip any of them:
 
 1. What will you use this memory for? Offer the suggested areas from `python LORE/lore.py area list` (jobs and internships, courses, project ideas, research, personal, work) and accept any other area they name.
 2. What are you working on these days?
@@ -41,7 +45,7 @@ Then:
 - Create only the areas they chose: `python LORE/lore.py area add <name>` (a suggested one), or `python LORE/lore.py area add <name> "<what goes there>"` (their own; lowercase letters, digits and `-`).
 - Write their answers in their own words into `me.md` under its headings: `python LORE/lore.py me --body-file -`. Never ask for or write ID numbers, addresses, phone numbers, passwords or similar.
 
-If the user skips all of it, create no areas; `inbox` is enough to start with, and you will suggest areas later as notes pile up.
+If the user skips all of it, run `python LORE/lore.py me --skip` so no later session asks again, and create no areas; `inbox` is enough to start with, and you will suggest areas later as notes pile up.
 
 ## 5. Run the tests
     cd LORE
@@ -61,6 +65,8 @@ Then tell the user:
 - **Antigravity:** restart the app so it reads the hook file.
 - **Claude Code:** new sessions pick the hooks up.
 
+If your client refuses to run `wire` (some safety checks block commands that touch client settings, even a dry run), ask the user to approve the command or to run it in a terminal; never edit those settings files by hand.
+
 If the user says no, skip this step. lore still works: the agent records outcomes through the rules in `AGENTS.md`.
 
 ## 7. Check it together
@@ -74,9 +80,9 @@ If the user says no, skip this step. lore still works: the agent records outcome
 ## 8. Obsidian
 Tell the user:
 - Open the vault folder itself in Obsidian ("Open folder as vault"); the areas sit at its root.
-- To create notes by hand with lore's header, enable **Settings → Core plugins → Templates**; the template folder `_templates` is already set.
-- The graph view colours notes by area, and shows `#client/...` tags (where a note was written) as their own nodes; turn Tags off in the graph settings for a pure topic view.
-- If `lore.py home` did not report creating `.obsidian/app.json` (the folder was already an Obsidian vault), ask the user to do two things once: **Settings → Files and links → Excluded files** → add `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `_templates/`; and in **Graph view → Filters**, turn **Tags** on.
+- Nothing needs setting by hand: the graph colours notes by area, and lore's agent files and template are hidden from the file list, graph and search.
+- To create notes by hand with lore's header, use the **Templates** core plugin (on by default in new vaults); its folder `_templates` is already set.
+- Only if `lore.py home` printed neither `CREATED:` nor `FILLED:` for `.obsidian/app.json`, the user already has their own Excluded files list; suggest adding `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `_templates/` to it (**Settings → Files and links → Excluded files**).
 
 ## Updating later
 When the user asks to update lore, run `python LORE/lore.py update` (`LORE` is the path named at the top of the vault's `AGENTS.md`). It:

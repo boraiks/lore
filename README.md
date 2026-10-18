@@ -47,7 +47,7 @@ The agent does the rest:
 | Check | Python and git are there. |
 | Code | lore is cloned into its own folder in your home folder (`~/lore`), apart from your notes. |
 | Vault | Your folder gets lore's rules, skills and Obsidian starter settings. Nothing already there is touched. |
-| Intro | A few short, skippable questions: what you use the memory for, what you work on, how you like answers. Only the areas you choose are created; your answers go to `me.md`. |
+| Intro | A few short questions (you can skip any): what you use the memory for, what you work on, how you like answers. Only the areas you choose are created; your answers go to `me.md`. If setup misses it, the next session asks. |
 | Hooks | You see every change to your clients' settings first; nothing is applied without your yes. In Codex, approve them with `/hooks`. |
 | Test | The tests run, and a test note is saved and read back. |
 
@@ -120,16 +120,15 @@ Not everyone studies or hunts for jobs, so lore forces no topics on you. It crea
 
 - Open the vault folder itself with "Open folder as vault": the areas sit at its root, with no extra `notes/` level.
 - Hidden folders (`.lore`, `.obsidian`) stay out of sight, and lore ignores `_templates` and the agent files when it searches or checks links.
-- To write notes by hand with the same header the agents use, enable **Settings → Core plugins → Templates**; the template folder is already set to `_templates`.
+- To write notes by hand with the same header the agents use, use the **Templates** core plugin (on by default); its folder is already set to `_templates`.
 - The graph shows three things at once:
   - **colour = area**: each area folder has its own colour, and its area note (`career/career.md`, ...) is the hub its notes link to;
   - **links = topic**: `[[links]]` connect notes about the same thing;
-  - **`#client/...` tags = where a note was written**: `jot` and `seal` tag every note with its client (`#client/claude`, `#client/codex`, `#client/antigravity`). With the graph's **Tags** option on, notes cluster around their client; turn it off for a pure topic view.
+  - **`#client/...` tags = where a note was written** (optional): `jot` and `seal` tag every note with its client (`#client/claude`, `#client/codex`, `#client/antigravity`). Turn on the graph's **Tags** option if you want to see notes cluster around their client.
 
-lore creates these Obsidian files only when they are missing, so an existing Obsidian setup is never changed. If Obsidian had already written its own settings (an existing vault, or a new one created in Obsidian before setup), do two things once:
+There is nothing to set by hand. If Obsidian already made its settings files (for example because you created the vault in Obsidian first), lore fills in only what is missing or empty there: the colour groups, the excluded files (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `_templates/`) and the template folder. Anything you set yourself stays as it is.
 
-1. **Settings → Files and links → Excluded files:** add `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `_templates/`. They are instructions and a template, not notes, so they leave the graph and search.
-2. **Graph view → Filters → Tags:** turn it on to see the `#client/...` nodes.
+Obsidian's own `Welcome.md` stays until you say otherwise: the agent asks during setup and, on a yes, moves it to the vault's `.trash`, where Obsidian can restore it.
 
 ## Updating
 
@@ -173,7 +172,8 @@ Then open the vault folder in Obsidian, and install the session hooks. Look firs
 | `mesh` | Broken `[[links]]`, orphan notes, broken outcome blocks, and (as information) sessions without an outcome. |
 | `home [folder]` | Show or set the vault, and set it up. |
 | `area list` / `area add <name> ["<what>"]` | Show the areas (and suggested ones), or add one. |
-| `me [--body-file -]` | Show `me.md`, or replace its body (secret-checked). |
+| `me [--body-file - \| --skip]` | Show `me.md` (with the intro questions while it is blank), replace its body (secret-checked), or note that the intro was skipped. |
+| `welcome [--remove]` | Find Obsidian's untouched `Welcome.md`; `--remove` moves it to `.trash` (only after a yes). |
 | `seed` | Create whatever is missing and refresh the vault's rules and skills; never touches notes. |
 | `update [--no-pull]` | Pull the new code, then do what `seed` does and report whether the hooks need a change. |
 | `scope list\|add\|remove` | Folders where the hooks may act. |

@@ -7,7 +7,8 @@ from tests.helpers import VaultCase
 
 class ObsidianStarterTest(VaultCase):
     def test_template_and_settings(self):
-        created = {p.relative_to(self.notes).as_posix() for p in vault.obsidian_starter(self.notes)}
+        created = {p.relative_to(self.notes).as_posix()
+                   for p, action in vault.obsidian_starter(self.notes) if action == "created"}
         self.assertEqual(created, {"_templates/lore-note.md", ".obsidian/templates.json",
                                    ".obsidian/graph.json", ".obsidian/app.json"})
         app = json.loads((self.notes / ".obsidian" / "app.json").read_text(encoding="utf-8"))
@@ -16,7 +17,7 @@ class ObsidianStarterTest(VaultCase):
         templates = json.loads((self.notes / ".obsidian" / "templates.json").read_text(encoding="utf-8"))
         self.assertEqual(templates["folder"], "_templates")
         graph = json.loads((self.notes / ".obsidian" / "graph.json").read_text(encoding="utf-8"))
-        self.assertTrue(graph["showTags"])  # client tags show as nodes
+        self.assertNotIn("showTags", graph)  # Obsidian's default (off): tags are not needed
         queries = {g["query"] for g in graph["colorGroups"]}
         self.assertTrue({f"path:{a}" for a in ("career", "courses", "ideas", "research")} <= queries)
         template = (self.notes / "_templates" / "lore-note.md").read_text(encoding="utf-8")
@@ -25,11 +26,10 @@ class ObsidianStarterTest(VaultCase):
 
     def test_existing_obsidian_settings_are_kept(self):
         self.put(".obsidian/graph.json", '{"mine": true}')
-        created = vault.obsidian_starter(self.notes)
-        self.assertNotIn(".obsidian/graph.json",
-                         {p.relative_to(self.notes).as_posix() for p in created})
-        self.assertEqual((self.notes / ".obsidian" / "graph.json").read_text(encoding="utf-8"),
-                         '{"mine": true}')
+        vault.obsidian_starter(self.notes)
+        graph = json.loads((self.notes / ".obsidian" / "graph.json").read_text(encoding="utf-8"))
+        self.assertTrue(graph["mine"])        # the user's key stays
+        self.assertTrue(graph["colorGroups"])  # only the missing key is added
 
 
 class NotNotesTest(VaultCase):

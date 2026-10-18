@@ -6,7 +6,7 @@
 - **Session outcome:** when meaningful work is done, the agent writes a 3-8 line linked `## Outcome` with `seal`. The note is found by session id and updated in place.
 - **Hooks (Claude Code, Codex, Antigravity):** they write nothing into the memory. They remind once when there is no outcome and the session is past the threshold, and log a content-free session record in the vault's hidden `.lore/` folder. `wire` installs them, dry run by default.
 - **Areas you choose and an intro:** only `inbox` and `sessions` are fixed; other areas are chosen at setup (`area add`) or suggested by the agent when a theme piles up, never created without a yes. A short, skippable intro writes `me.md`, which agents read first.
-- **Graph:** colour = area, `[[links]]` = topic, `#client/<name>` tag = where a note was written (shown as nodes when the graph's Tags option is on).
+- **Graph:** colour = area, `[[links]]` = topic, `#client/<name>` tag = where a note was written (optional: shown as nodes when the graph's Tags option is on). Settings Obsidian already made are filled in where blank, never overwritten.
 - **Privacy:** an allow list (`allowed_roots`, the `scope` command), `private_dirs`, `seal --private`, a secret and personal-number filter, and the public repository test.
 - **Skills:** `lore-memory`, `lore-check`, `lore-setup`, from one source in `skills/`; `seed` syncs both client folders.
 - **One-message install, updates and Obsidian:** `INSTALL.md` lets an agent set lore up from a single pasted message. The vault gets lore's real rules and skills (with the path to the code filled in), tracked by hash so `lore.py update` refreshes untouched copies and keeps edited ones. Also an Obsidian note template and graph colours, each only if missing.

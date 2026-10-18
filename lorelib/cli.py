@@ -73,6 +73,12 @@ def _parser() -> argparse.ArgumentParser:
     mbody = me.add_mutually_exclusive_group()
     mbody.add_argument("--body")
     mbody.add_argument("--body-file", help="UTF-8 file; '-' for stdin")
+    mbody.add_argument("--skip", action="store_true",
+                       help="remember that the user skipped the intro questions")
+
+    wl = sub.add_parser("welcome", help="Obsidian's untouched Welcome.md: show, or remove on yes")
+    wl.add_argument("--remove", action="store_true",
+                    help="move it to the vault's .trash; only after the user said yes")
 
     up = sub.add_parser("update", help="pull the new code and refresh this vault's rules and skills")
     up.add_argument("--no-pull", action="store_true", help="skip git pull; only refresh the vault")
@@ -171,14 +177,28 @@ def _area(args, notes_dir: Path) -> int:
     return 0
 
 
+def _intro_prompt() -> str:
+    lines = ["me.md has no answers yet. Ask the user these now, one or two at a time, in their "
+             "language; they may skip any or all of them:"]
+    lines += [f"  {i}. {q}" for i, q in enumerate(vault.INTRO_QUESTIONS, 1)]
+    lines += ["Then create only the areas they chose (python lore.py area add <name> "
+              "[\"<what goes there>\"]) and write their answers under the headings of me.md "
+              "(python lore.py me --body-file -). If they skip it all: python lore.py me --skip"]
+    return "\n".join(lines)
+
+
 def _me(args, notes_dir: Path) -> int:
+    if args.skip:
+        print("SKIPPED: noted in me.md; the intro will not be offered again:",
+              _display(vault.skip_intro(notes_dir), notes_dir))
+        return 0
     if args.body is None and args.body_file is None:
         path = notes_dir / f"{vault.ME}.md"
-        if not path.exists():
-            print("No me.md yet. Write it with: python lore.py me --body-file -")
-            return 0
-        print(recall.DATA_WARNING)
-        print(frontmatter.parse(vault.read(path))[1].strip())
+        if path.exists():
+            print(recall.DATA_WARNING)
+            print(frontmatter.parse(vault.read(path))[1].strip())
+        if vault.me_is_blank(notes_dir):
+            print(_intro_prompt())
         return 0
     try:
         path = vault.set_me(notes_dir, args.body if args.body is not None else _read_body(args))
@@ -218,8 +238,11 @@ def _seal(args, notes_dir: Path) -> int:
 
 def _set_up(vault_dir: Path) -> None:
     """Everything `home`, `seed` and `update` lay down; notes are never touched."""
-    for path in vault.seed(vault_dir) + vault.obsidian_starter(vault_dir):
+    for path in vault.seed(vault_dir):
         print("CREATED:", path.as_posix())
+    for path, action in vault.obsidian_starter(vault_dir):
+        print("CREATED:" if action == "created" else "FILLED:",
+              path.relative_to(vault_dir).as_posix())
     words = {"created": "CREATED", "updated": "UPDATED"}
     for change in install.install(vault_dir):
         if change.action in words:
@@ -230,6 +253,28 @@ def _set_up(vault_dir: Path) -> None:
         if change.action == "stale":
             print(f"WARNING: skill copy without a source, not deleted: {change.path.as_posix()}")
     print("Existing notes untouched.")
+    if vault.me_is_blank(vault_dir):
+        print("NEXT: ask the intro questions; `python lore.py me` lists them.")
+    if vault.obsidian_welcome(vault_dir):
+        print(f"ASK: Obsidian's starter note {vault.WELCOME} is still untouched. Ask the user "
+              "whether to remove it; only on yes run `python lore.py welcome --remove` "
+              "(it goes to the vault's .trash).")
+
+
+def _welcome(args, notes_dir: Path) -> int:
+    if not args.remove:
+        path = vault.obsidian_welcome(notes_dir)
+        print(f"{vault.WELCOME} is Obsidian's untouched starter note; remove it only after "
+              "the user says yes: python lore.py welcome --remove" if path else
+              f"No untouched {vault.WELCOME} from Obsidian here.")
+        return 0
+    try:
+        dest = vault.remove_welcome(notes_dir)
+    except ValueError as e:
+        print(f"ERROR: {e}")
+        return 5
+    print("MOVED:", vault.WELCOME, "->", _display(dest, notes_dir))
+    return 0
 
 
 def _home(args) -> int:
@@ -334,5 +379,8 @@ def main(argv=None, notes_dir: Path | None = None) -> int:
 
     if args.cmd == "me":
         return _me(args, notes_dir)
+
+    if args.cmd == "welcome":
+        return _welcome(args, notes_dir)
 
     return 2

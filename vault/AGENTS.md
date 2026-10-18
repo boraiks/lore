@@ -12,7 +12,7 @@ This folder is a lore vault: a personal memory shared by AI clients. Notes are p
 - Write note content in the user's language.
 
 ## At the start of a session
-Read `me.md` at the vault root if it exists: it is short and tells you who the user is, what they use this memory for and how they like answers. Do not read the rest of the vault. If the task touches earlier work, search first and open only the relevant results:
+Read `me.md` first with `python {{LORE}}/lore.py me`: it is short and tells you who the user is, what they use this memory for and how they like answers. If the output says `me.md` has no answers yet, ask its intro questions once, before the task, and follow its instructions (the user may skip; then run `lore.py me --skip`). Do not read the rest of the vault. If the task touches earlier work, search first and open only the relevant results:
 
     python {{LORE}}/lore.py recall "internship interview"    # 5 results at most; --limit N (20 max)
 

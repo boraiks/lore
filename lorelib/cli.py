@@ -72,6 +72,7 @@ def _parser() -> argparse.ArgumentParser:
     dc.add_argument("name")
 
     sub.add_parser("organize", help="short inventory (areas, tags, inbox) to plan a tidy-up")
+    sub.add_parser("undo", help="revert the latest organize run (tag merges and moves)")
 
     tg = sub.add_parser("tag", help="change tags across notes")
     tgs = tg.add_subparsers(dest="tag_cmd", required=True)
@@ -207,7 +208,8 @@ def _area(args, notes_dir: Path) -> int:
     return 0
 
 
-_DRY = "Dry run: nothing written. Show the user; only after a clear yes, add --apply."
+_DRY = "Dry run: nothing written. To apply, add --apply."
+_UNDO = "Recorded; the whole tidy-up can be reverted with: python lore.py undo"
 
 
 def _tag(args, notes_dir: Path) -> int:
@@ -222,7 +224,8 @@ def _tag(args, notes_dir: Path) -> int:
         print(f"{word}: {vault.rel(path, notes_dir)}")
     what = (f"{args.into} added, {', '.join(args.tags)} kept" if args.keep
             else f"{', '.join(args.tags)} -> {args.into}")
-    print(f"{len(changed)} notes; tags {what}." + ("" if args.apply else " " + _DRY))
+    print(f"{len(changed)} notes; tags {what}. " + (_UNDO if args.apply and changed else
+                                                     "" if args.apply else _DRY))
     return 0
 
 
@@ -237,8 +240,20 @@ def _move(args, notes_dir: Path) -> int:
         print(f"{word}MOVE: {vault.rel(src, notes_dir)} -> {vault.rel(dest, notes_dir)}")
     for path, n in plan.link_updates:
         print(f"{word}UPDATE LINKS: {vault.rel(path, notes_dir)} ({n})")
-    if not args.apply:
-        print(_DRY)
+    print(_UNDO if args.apply else _DRY)
+    return 0
+
+
+def _undo(notes_dir: Path) -> int:
+    try:
+        result = organize.undo(notes_dir)
+    except ValueError as e:
+        print(e)
+        return 5
+    for line in result.undone:
+        print("UNDONE:", line)
+    for rel in result.skipped:
+        print(f"SKIPPED (changed since, left as it is): {rel}")
     return 0
 
 
@@ -462,8 +477,12 @@ def main(argv=None, notes_dir: Path | None = None) -> int:
         return _welcome(args, notes_dir)
 
     if args.cmd == "organize":
+        organize.start_run(notes_dir)
         print(organize.inventory(notes_dir))
         return 0
+
+    if args.cmd == "undo":
+        return _undo(notes_dir)
 
     if args.cmd == "tag":
         return _tag(args, notes_dir)

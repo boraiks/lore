@@ -102,7 +102,8 @@ After setup there is nothing to run. Keep the vault open in Obsidian, open the s
 | "Note this: ..." | writes a note with `jot`, linked to a related one |
 | "Save" / "Wrap up" | records the session outcome with `seal` |
 | "Check the memory" | runs `mesh` and suggests fixes without touching anything |
-| "Organize the memory" | reads a short inventory, proposes a plan (merge `fitness` into `spor`, add `spor` to notes tagged `antrenman` and keep it, move these inbox notes to `spor`) and applies only what you approve |
+| "Organize the memory" | reads a short inventory and tidies up on its own: merges `fitness` into `spor`, adds `spor` to notes tagged `antrenman` and keeps it, opens a `spor` area, moves the inbox notes there; then tells you what it did |
+| "Undo that" | reverts the whole tidy-up with `undo` (notes you changed since are left alone) |
 | "Don't save this session" | marks it private; nothing is recorded |
 | "Remember that I prefer short answers" | updates `me.md`, which every session reads first |
 | "Update lore" | pulls the new code and refreshes the vault's rules ([Updating](#updating)) |
@@ -175,6 +176,7 @@ Then open the vault folder in Obsidian, and install the session hooks. Look firs
 | `organize` | A short inventory for tidying up: areas, tags with counts, inbox notes. |
 | `tag merge <tags> --into <tag> [--keep] [--apply]` | Replace tags across notes (synonyms), or with `--keep` add the broad tag and keep the old ones (sub-topics). Edits only the header's tags and `updated` lines. |
 | `move <notes> --to <area> [--apply]` | Move notes into an area and update the links to them; stops before anything if a file would be overwritten. |
+| `undo` | Revert the latest organize run (tag merges and moves). Applied changes are recorded in `.lore/logs/organize.jsonl`: paths and tags only, never note text. |
 | `home [folder] [--this-folder]` | Show or set the vault, and set it up. Stops if another Obsidian vault is inside or above the folder. |
 | `area list` / `area add <name> ["<what>"]` / `area decline <name>` | Show the areas (and suggested ones), add one, or stop an area from being suggested. |
 | `me [--body-file - \| --skip]` | Show `me.md` (with the intro questions while it is blank), replace its body (secret-checked), or note that the intro was skipped. |
@@ -231,7 +233,7 @@ Three short skills, one per group of commands; the real rules live in `AGENTS.md
 | Skill | Commands | Picked when the user says |
 |---|---|---|
 | `lore-memory` | `recall`, `jot`, `seal` | save, wrap up, write this to memory, note this, do you remember |
-| `lore-check` | `mesh`, `organize`, `tag merge`, `move` | check the memory, organize the memory |
+| `lore-check` | `mesh`, `organize`, `tag merge`, `move`, `undo` | check the memory, organize the memory |
 | `lore-setup` | `home`, `seed`, `wire` | set up the folders, set up the hooks |
 
 The single source is `skills/<name>/SKILL.md`; `lore.py home`, `seed` and `update` install it into the vault's `.claude/skills/` and `.agents/skills/` with the path to the code filled in. Agents do not edit skill or rule files unless you ask.

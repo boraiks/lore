@@ -8,10 +8,12 @@ before touching anything if a destination already exists."""
 
 from __future__ import annotations
 
+import json
 import os
 import re
+import secrets
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from . import frontmatter, guard, inbox, mesh, vault
@@ -123,6 +125,59 @@ def _write(path: Path, text: str) -> None:
     os.replace(tmp, path)
 
 
+# --- journal and runs ----------------------------------------------------------------------
+# Every applied change is journaled in .lore/logs/organize.jsonl so `undo` can revert it.
+# Only vault-relative paths and tags are recorded, never note text. `organize` starts a run;
+# changes applied within RUN_HOURS of it belong to that run, and `undo` reverts a whole run.
+
+RUN_HOURS = 2
+
+
+def _journal_path(vault_dir: Path) -> Path:
+    return vault_dir / ".lore" / "logs" / "organize.jsonl"
+
+
+def _run_path(vault_dir: Path) -> Path:
+    return vault_dir / ".lore" / "state" / "organize-run.json"
+
+
+def _new_run_id(now: datetime) -> str:
+    return now.strftime("%Y%m%dT%H%M%S") + "-" + secrets.token_hex(3)
+
+
+def start_run(vault_dir: Path, now: datetime | None = None) -> str:
+    now = now or datetime.now()
+    run = _new_run_id(now)
+    path = _run_path(vault_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"run": run, "at": now.isoformat(timespec="seconds")}),
+                    encoding="utf-8")
+    return run
+
+
+def _current_run(vault_dir: Path, now: datetime) -> str:
+    try:
+        data = json.loads(_run_path(vault_dir).read_text(encoding="utf-8"))
+        if now - datetime.fromisoformat(data["at"]) <= timedelta(hours=RUN_HOURS):
+            return str(data["run"])
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    return _new_run_id(now)   # an apply without a recent `organize` is a run of its own
+
+
+def _journal(vault_dir: Path, now: datetime, entry: dict) -> None:
+    entry = {"run": _current_run(vault_dir, now), "at": now.isoformat(timespec="seconds"),
+             **entry}
+    path = _journal_path(vault_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+
+
+def _rel(path: Path, vault_dir: Path) -> str:
+    return vault.rel(path, vault_dir)
+
+
 # --- tag merge -----------------------------------------------------------------------------
 
 def merge_tags(vault_dir: Path, sources, into: str, apply: bool = False, keep: bool = False,
@@ -140,7 +195,8 @@ def merge_tags(vault_dir: Path, sources, into: str, apply: bool = False, keep: b
         raise ValueError("nothing to merge: give tags other than the target")
     if any(k.startswith("client/") for k in src):
         raise ValueError("client tags record where a note was written; they are not merged")
-    changed = []
+    now = now or datetime.now()
+    changed, records = [], []
     for path in vault.iter_notes(vault_dir):
         text = vault.read(path)
         meta, _ = frontmatter.parse(text)
@@ -162,6 +218,9 @@ def merge_tags(vault_dir: Path, sources, into: str, apply: bool = False, keep: b
         if apply:
             _write(path, _edit(text, tags=new,
                                updated=vault.stamp(now) if "updated" in meta else None))
+            records.append({"path": _rel(path, vault_dir), "before": tags, "after": new})
+    if records:
+        _journal(vault_dir, now, {"kind": "tags", "notes": records})
     return changed
 
 
@@ -227,35 +286,26 @@ def _no_md(path: Path, vault_dir: Path) -> str:
     return rel[:-3] if rel.lower().endswith(".md") else rel
 
 
-def move_notes(vault_dir: Path, given, area: str, apply: bool = False,
-               now: datetime | None = None) -> MovePlan:
-    """Move notes into an area and update path-style links to them, plus the moved notes'
-    links to their old area note. All checks run before anything is written."""
-    if area == "sessions":
-        raise ValueError("sessions/ holds outcome records written by seal only")
-    if area not in set(vault.areas(vault_dir)) | {inbox.INBOX}:
-        raise ValueError(f"unknown area: {area}; create it first with `lore.py area add {area}`")
-    notes = {p.resolve(): p for p in vault.iter_notes(vault_dir)}
-    plan = MovePlan()
-    dests: set[Path] = set()
-    moved: dict[Path, Path] = {}       # resolved source -> destination
-    old_hub: dict[Path, Path] = {}     # resolved source -> resolved old area note
-    for item in given:
-        src = _resolve_note(vault_dir, item, notes)
-        dest = vault_dir / area / src.name
-        if src.parent == dest.parent:
-            raise ValueError(f"already in {area}: {vault.rel(src, vault_dir)}")
-        if dest.exists() or dest in dests:
-            raise ValueError(f"{vault.rel(dest, vault_dir)} already exists; nothing was moved")
-        dests.add(dest)
-        plan.moves.append((src, dest))
-        moved[src.resolve()] = dest
-        first = src.relative_to(vault_dir).parts[0]
-        hub = vault_dir / first / f"{first}.md"
-        if len(src.relative_to(vault_dir).parts) > 1 and hub.exists():
-            old_hub[src.resolve()] = hub.resolve()
+def _old_hub(src: Path, vault_dir: Path) -> str | None:
+    """The area note a note in an area folder belongs to, as a link target."""
+    parts = src.relative_to(vault_dir).parts
+    if len(parts) > 1 and (vault_dir / parts[0] / f"{parts[0]}.md").exists():
+        return vault.hub(parts[0])
+    return None
 
+
+def _relocate(vault_dir: Path, pairs: list[tuple[Path, Path]], hubs: dict, apply: bool,
+              now: datetime) -> MovePlan:
+    """Move each (src, dest); rewrite path-style links to moved notes, and in a moved note
+    the link to its old area note (hubs: resolved src -> (old hub target, new hub target))."""
+    plan = MovePlan(moves=list(pairs))
+    moved = {src.resolve(): dest for src, dest in pairs}
     index = mesh.LinkIndex(vault_dir)
+    hub_paths = {}
+    for src, (old, new) in hubs.items():
+        hit = index.resolve(old) if old else None
+        if hit is not None and new:
+            hub_paths[src] = (hit.resolve(), new)
     new_texts: dict[Path, str] = {}
     for path in vault.iter_notes(vault_dir):
         me = path.resolve()
@@ -267,35 +317,132 @@ def move_notes(vault_dir: Path, given, area: str, apply: bool = False,
             hit = hit.resolve()
             if hit in moved and "/" in target:
                 return _no_md(moved[hit], vault_dir)
-            if me in moved and old_hub.get(me) == hit:
-                return vault.hub(area)
+            if me in hub_paths and hub_paths[me][0] == hit:
+                return hub_paths[me][1]
             return None
 
         text = vault.read(path)
-        body_count = [0]
+        counted = [0]
 
         def body_fn(body, fn=fn):
             new, n = _rewrite_links(body, fn)
-            body_count[0] = n
+            counted[0] = n
             return new
 
         new_text = _edit(text, body_fn=body_fn)
-        if body_count[0]:
-            meta, _ = frontmatter.parse(text)
-            if "updated" in meta:
+        if counted[0]:
+            if "updated" in frontmatter.parse(text)[0]:
                 new_text = _edit(new_text, updated=vault.stamp(now))
             new_texts[path] = new_text
-            plan.link_updates.append((path, body_count[0]))
+            plan.link_updates.append((path, counted[0]))
 
     if apply:
         for path, text in new_texts.items():
             if path.resolve() not in moved:
                 _write(path, text)
-        for src, dest in plan.moves:
+        for src, dest in pairs:
             if dest.exists():
-                raise ValueError(f"{vault.rel(dest, vault_dir)} appeared meanwhile; stopped")
+                raise ValueError(f"{_rel(dest, vault_dir)} appeared meanwhile; stopped")
             if src in new_texts:
                 _write(src, new_texts[src])
             dest.parent.mkdir(parents=True, exist_ok=True)
             os.replace(src, dest)
     return plan
+
+
+def move_notes(vault_dir: Path, given, area: str, apply: bool = False,
+               now: datetime | None = None) -> MovePlan:
+    """Move notes into an area and update path-style links to them, plus the moved notes'
+    links to their old area note. All checks run before anything is written."""
+    if area == "sessions":
+        raise ValueError("sessions/ holds outcome records written by seal only")
+    if area not in set(vault.areas(vault_dir)) | {inbox.INBOX}:
+        raise ValueError(f"unknown area: {area}; create it first with `lore.py area add {area}`")
+    now = now or datetime.now()
+    notes = {p.resolve(): p for p in vault.iter_notes(vault_dir)}
+    pairs: list[tuple[Path, Path]] = []
+    hubs: dict = {}
+    for item in given:
+        src = _resolve_note(vault_dir, item, notes)
+        dest = vault_dir / area / src.name
+        if src.parent == dest.parent:
+            raise ValueError(f"already in {area}: {_rel(src, vault_dir)}")
+        if dest.exists() or dest in {d for _, d in pairs}:
+            raise ValueError(f"{_rel(dest, vault_dir)} already exists; nothing was moved")
+        pairs.append((src, dest))
+        hubs[src.resolve()] = (_old_hub(src, vault_dir), vault.hub(area))
+    plan = _relocate(vault_dir, pairs, hubs, apply, now)
+    if apply:
+        _journal(vault_dir, now, {"kind": "move", "moves": [
+            {"from": _rel(src, vault_dir), "to": _rel(dest, vault_dir),
+             "hub_from": hubs[src.resolve()][0], "hub_to": hubs[src.resolve()][1]}
+            for src, dest in pairs]})
+    return plan
+
+
+# --- undo ----------------------------------------------------------------------------------
+
+@dataclass
+class UndoResult:
+    run: str
+    undone: list[str] = field(default_factory=list)
+    skipped: list[str] = field(default_factory=list)   # changed since; left as they are
+
+
+def _entries(vault_dir: Path) -> list[dict]:
+    try:
+        lines = _journal_path(vault_dir).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    out = []
+    for line in lines:
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            continue
+    return out
+
+
+def undo(vault_dir: Path, now: datetime | None = None) -> UndoResult:
+    """Revert the latest organize run that was not undone yet, newest change first.
+    A note changed since is skipped and reported, never overwritten."""
+    now = now or datetime.now()
+    entries = _entries(vault_dir)
+    done = {e.get("undo") for e in entries if "undo" in e}
+    batches = [e for e in entries if e.get("kind") in ("tags", "move") and e.get("run") not in done]
+    if not batches:
+        raise ValueError("Nothing to undo: no organize changes are recorded.")
+    run = batches[-1]["run"]
+    result = UndoResult(run)
+    for batch in reversed([b for b in batches if b["run"] == run]):
+        if batch["kind"] == "tags":
+            for rec in batch.get("notes", []):
+                path = vault_dir / rec["path"]
+                if not path.is_file():
+                    result.skipped.append(rec["path"])
+                    continue
+                text = vault.read(path)
+                meta, _ = frontmatter.parse(text)
+                if _as_list(meta.get("tags")) != rec["after"]:
+                    result.skipped.append(rec["path"])
+                    continue
+                _write(path, _edit(text, tags=rec["before"],
+                                   updated=vault.stamp(now) if "updated" in meta else None))
+                result.undone.append(f"tags of {rec['path']}")
+        else:
+            pairs, hubs = [], {}
+            for mv in batch.get("moves", []):
+                src, dest = vault_dir / mv["to"], vault_dir / mv["from"]
+                if not src.is_file() or dest.exists():
+                    result.skipped.append(mv["to"])
+                    continue
+                pairs.append((src, dest))
+                hubs[src.resolve()] = (mv.get("hub_to"), mv.get("hub_from"))
+            if pairs:
+                _relocate(vault_dir, pairs, hubs, True, now)
+                result.undone.extend(f"{mv_from} back from {mv_to}" for mv_to, mv_from in
+                                     ((_rel(s, vault_dir), _rel(d, vault_dir)) for s, d in pairs))
+    path = _journal_path(vault_dir)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(json.dumps({"undo": run, "at": now.isoformat(timespec="seconds")}) + "\n")
+    return result

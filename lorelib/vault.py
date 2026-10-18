@@ -225,6 +225,19 @@ def set_me(vault_dir: Path, body: str, now: datetime | None = None) -> Path:
     return path
 
 
+def nested_vaults(folder: Path) -> list[Path]:
+    """Other Obsidian vaults above the folder or directly inside it. Creating a vault in
+    Obsidian inside an existing folder makes <folder>/<name>/.obsidian, so the folder the
+    client is open in may not be the vault."""
+    folder = folder.expanduser().resolve()
+    found = [p for p in folder.parents if (p / ".obsidian").is_dir()]
+    if folder.is_dir():
+        found += sorted(p for p in folder.iterdir()
+                        if p.is_dir() and not p.name.startswith(".")
+                        and (p / ".obsidian").is_dir())
+    return found
+
+
 # Asked once, at setup or in the first session after it, while me.md has no answers.
 INTRO_QUESTIONS = (
     "What will you use this memory for? (suggested areas: jobs and internships, courses, "

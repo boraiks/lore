@@ -85,6 +85,8 @@ def _parser() -> argparse.ArgumentParser:
 
     hm = sub.add_parser("home", help="show or set the personal vault folder")
     hm.add_argument("folder", nargs="?", help="if given: saved to ~/.lore.json and set up")
+    hm.add_argument("--this-folder", action="store_true",
+                    help="use the folder even though another Obsidian vault is inside or above it")
 
     sc = sub.add_parser("scope", help="folders where the hooks act (allowed_roots)")
     scs = sc.add_subparsers(dest="scope_cmd", required=True)
@@ -284,6 +286,15 @@ def _home(args) -> int:
         print("The folder exists." if path.is_dir() else
               "The folder does not exist yet. To set it up: python lore.py home <folder>")
         return 0
+    others = vault.nested_vaults(Path(args.folder))
+    if others and not args.this_folder:
+        print("STOP: another Obsidian vault is inside or above this folder, so it may be the "
+              "wrong one. Nothing was set up.")
+        for other in others:
+            print("  ", other.as_posix())
+        print("Ask the user which folder is their vault and run `python lore.py home <it>`; "
+              "to use this folder anyway, add --this-folder.")
+        return 7
     path = vault.set_home(Path(args.folder))
     print(f"VAULT: {path.as_posix()} (saved to ~/.lore.json)")
     _set_up(path)

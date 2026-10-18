@@ -128,6 +128,26 @@ class FirstRunCommandsTest(VaultCase):
         self.assertIn("lore.py welcome --remove", out)
         self.assertTrue((target / "Welcome.md").exists())  # only removed after the user's yes
 
+    def test_home_stops_at_a_vault_inside_the_folder(self):
+        # Obsidian's "Create new vault" in an existing folder makes <folder>/<name>/.obsidian
+        outer = self.notes.parent / "kasa"
+        (outer / "kasa" / ".obsidian").mkdir(parents=True)
+        code, out = self.run_cli("home", str(outer))
+        self.assertNotEqual(code, 0)
+        self.assertIn("STOP", out)
+        self.assertIn((outer / "kasa").as_posix(), out)
+        self.assertFalse((outer / "home.md").exists())  # nothing was set up
+        code, out = self.run_cli("home", str(outer), "--this-folder")
+        self.assertEqual(code, 0, out)
+        self.assertTrue((outer / "home.md").exists())
+
+    def test_home_stops_inside_another_vault(self):
+        outer = self.notes.parent / "buyuk"
+        (outer / ".obsidian").mkdir(parents=True)
+        code, out = self.run_cli("home", str(outer / "alt"))
+        self.assertNotEqual(code, 0)
+        self.assertIn(outer.as_posix(), out)
+
     def test_me_prints_the_questions_while_blank(self):
         vault.seed(self.notes)
         code, out = self.run_cli_vault("me")

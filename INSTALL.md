@@ -22,6 +22,8 @@ Below, `LORE` stands for that folder's full path and `VAULT` for the full path o
 ## 3. Set up the vault
     python LORE/lore.py home "VAULT"
 
+If it prints `STOP` (another Obsidian vault is inside or above this folder, which happens when a vault is created in Obsidian inside an existing folder), nothing was set up: show the user the folders it lists, ask which one is their vault, and run `home` with that folder (add `--this-folder` only if they choose the one you are in).
+
 This saves the vault's location to `~/.lore.json` and creates only what is missing:
 - `home.md`, `me.md` (about the user, filled in the next step), and the two areas lore needs: `inbox/` (notes without an area yet) and `sessions/` (session outcomes);
 - `AGENTS.md` (lore's rules, with the path to the code filled in), `CLAUDE.md` and `GEMINI.md`, plus the skills in `.claude/skills/` and `.agents/skills/`. If the user already has one of these files, it is kept and lore's version is written next to it as `<file>.new`; tell the user;
@@ -29,7 +31,7 @@ This saves the vault's location to `~/.lore.json` and creates only what is missi
 
 Notes already in the folder stay as they are. lore works with any Markdown next to them.
 
-If the output has an `ASK:` line about `Welcome.md` (the note Obsidian puts in a new vault, still unchanged), ask the user whether to remove it. Only on a clear yes run `python LORE/lore.py welcome --remove`; it moves the note to the vault's `.trash`, where Obsidian can restore it. The `NEXT:` line leads to step 4.
+If the output has an `ASK:` line about `Welcome.md` (the note Obsidian puts in a new vault, still unchanged), ask the user whether to remove it. Ask even if they told you to keep every note: it is Obsidian's sample note, not theirs, and the choice is theirs to make. Only on a clear yes run `python LORE/lore.py welcome --remove`; it moves the note to the vault's `.trash`, where Obsidian can restore it. The `NEXT:` line leads to step 4.
 
 ## 4. Get to know the user (do not skip this step)
 Do this now, before the tests and the hooks, even if the user's message did not mention it. Do not leave it for the end or present it as optional: the user may skip any question, you may not skip asking.

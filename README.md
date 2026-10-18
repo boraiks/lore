@@ -48,7 +48,7 @@ The agent does the rest:
 | Code | lore is cloned into its own folder in your home folder (`~/lore`), apart from your notes. |
 | Vault | Your folder gets lore's rules, skills and Obsidian starter settings. Nothing already there is touched. |
 | Intro | A few short questions (you can skip any): what you use the memory for, what you work on, how you like answers. Only the areas you choose are created; your answers go to `me.md`. If setup misses it, the next session asks. |
-| Hooks | You see every change to your clients' settings first; nothing is applied without your yes. In Codex, approve them with `/hooks`. |
+| Hooks | You see every change to your clients' settings first; nothing is applied without your yes. If your client's safety check blocks the command (Claude Code may, even for the dry run), the agent gives you the one command to run yourself. In Codex, approve the hooks with `/hooks`. |
 | Test | The tests run, and a test note is saved and read back. |
 
 Prefer to do it by hand? See [Manual setup](#manual-setup).
@@ -170,7 +170,7 @@ Then open the vault folder in Obsidian, and install the session hooks. Look firs
 | `jot` | Write a new note: generated header, never overwrites, rejects secrets without printing them, always linked. |
 | `seal` | Record the session outcome as an `## Outcome` block in `sessions/<date>-<client>-<topic>.md`, updated in place for the same session. |
 | `mesh` | Broken `[[links]]`, orphan notes, broken outcome blocks, and (as information) sessions without an outcome. |
-| `home [folder]` | Show or set the vault, and set it up. |
+| `home [folder] [--this-folder]` | Show or set the vault, and set it up. Stops if another Obsidian vault is inside or above the folder. |
 | `area list` / `area add <name> ["<what>"]` | Show the areas (and suggested ones), or add one. |
 | `me [--body-file - \| --skip]` | Show `me.md` (with the intro questions while it is blank), replace its body (secret-checked), or note that the intro was skipped. |
 | `welcome [--remove]` | Find Obsidian's untouched `Welcome.md`; `--remove` moves it to `.trash` (only after a yes). |

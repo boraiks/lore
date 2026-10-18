@@ -30,8 +30,8 @@ You switch between AI clients; your memory should not care. lore keeps one vault
 
 ## Quick start
 
-1. In Obsidian, create a new vault (or pick an existing one). This folder becomes your `lore-vault`; it can live anywhere.
-2. Open that same folder in your AI client (Claude Code, Codex or Antigravity).
+1. In Obsidian, create a new vault (or pick an existing one). This folder becomes your `lore-vault`; it can live anywhere. Note that **Create new vault** makes a new folder, named after the vault, *inside* the location you pick: for `C:\lore-vault`, name it `lore-vault` and pick `C:\` as the location.
+2. Open that same folder, the one holding Obsidian's hidden `.obsidian` folder, in your AI client (Claude Code, Codex or Antigravity). Open this folder every time you want a session remembered: sessions started anywhere else do not know about lore.
 3. Paste this message, in any language you like:
 
 ```text

@@ -22,7 +22,7 @@ Below, `LORE` stands for that folder's full path and `VAULT` for the full path o
 ## 3. Set up the vault
     python LORE/lore.py home "VAULT"
 
-If it prints `STOP` (another Obsidian vault is inside or above this folder, which happens when a vault is created in Obsidian inside an existing folder), nothing was set up: show the user the folders it lists, ask which one is their vault, and run `home` with that folder (add `--this-folder` only if they choose the one you are in).
+If it prints `STOP` (another Obsidian vault is inside or above this folder, which happens when a vault is created in Obsidian inside an existing folder), nothing was set up: show the user the folders it lists, ask which one is their vault, and run `home` with that folder (add `--this-folder` only if they choose the one you are in). If the vault turns out to be a folder inside the one you are in and nothing else is next to it, tell the user that future sessions must be opened in the inner folder, and offer to make it flat instead: once Obsidian is closed and the user said yes, move the inner folder's contents up one level and run `home` on the outer folder.
 
 This saves the vault's location to `~/.lore.json` and creates only what is missing:
 - `home.md`, `me.md` (about the user, filled in the next step), and the two areas lore needs: `inbox/` (notes without an area yet) and `sessions/` (session outcomes);
@@ -78,6 +78,8 @@ If the user says no, skip this step. lore still works: the agent records outcome
 
 2. Read it back: `python LORE/lore.py recall "install check"`.
 3. Ask the user to open a **new** session in the vault folder and ask: "Do you remember the lore install check?" The new session should find the note with `recall`, and should already know what is in `me.md`.
+
+Then tell the user, as a line of its own: "From now on, open your AI client in VAULT. Sessions opened in other folders are not remembered."
 
 ## 8. Obsidian
 Tell the user:

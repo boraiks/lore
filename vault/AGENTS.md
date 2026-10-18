@@ -10,6 +10,7 @@ This folder is a lore vault: a personal memory shared by AI clients. Notes are p
 - Edit an existing note only when the user asks; keep its header and update the `updated` field.
 - Do not edit skill or rule files unless the user says so; show a suggestion instead. In this vault, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/skills/` and `.agents/skills/` are managed by lore and refreshed by `python {{LORE}}/lore.py update`. A file the user edits is kept; the new version then waits next to it as `<file>.new`. Never edit anything in `{{LORE}}` itself.
 - Write note content in the user's language.
+- The vault holds notes. Files you make for the user (drafts, blog posts, code, exports, images) go where the user says or into the project they belong to, never loose in the vault; if unsure, ask where. If the work is worth remembering, add a short note that says what it is and where it lives.
 
 ## At the start of a session
 Read `me.md` first with `python {{LORE}}/lore.py me`: it is short and tells you who the user is, what they use this memory for and how they like answers. If the output says `me.md` has no answers yet, ask its intro questions once, before the task, and follow its instructions (the user may skip; then run `lore.py me --skip`). Do not read the rest of the vault. If the task touches earlier work, search first and open only the relevant results:

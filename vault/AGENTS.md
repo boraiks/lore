@@ -27,10 +27,10 @@ Update `me.md` only with things the user says about themselves and wants remembe
 - Areas are the folders at the vault root that hold a note of their own name; `python {{LORE}}/lore.py area list` shows them. The user chooses them. Two always exist: `inbox` for anything without a clear area, and `sessions` for outcome records (written by `seal` only).
 
 ## New areas: suggest, never create on your own
-- When several notes (about three) share a theme that no area covers, or the user clearly starts something new in their life or work, suggest an area in one sentence: its name and why. Example: "Three notes about training have piled up in inbox; shall I create a `fitness` area?"
+- When `jot` prints a `SUGGEST:` line (three or more inbox notes share a tag that no area covers), or the user clearly starts something new in their life or work, suggest an area in one sentence: its name and why. Example: "Three notes about training have piled up in inbox; shall I create a `fitness` area?"
 - Create it only after the user says yes: `python {{LORE}}/lore.py area add <name> "<what goes there>"` (lowercase, digits and `-`).
 - Moving existing notes into the new area is a separate question. List the notes and move nothing without approval.
-- Suggest each area at most once per session, and not again if the user declined.
+- If the user says no, run `python {{LORE}}/lore.py area decline <name>` so it is never suggested again. Suggest each area at most once per session.
 
 ## At the end of a session: the outcome record
 When meaningful work is done, record the session outcome BEFORE your final answer. Do not write one for a simple question, a greeting or small talk.

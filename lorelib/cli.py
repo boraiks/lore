@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from . import (config, frontmatter, guard, hook, install, jot, mesh, recall, seal,
+from . import (config, frontmatter, guard, hook, inbox, install, jot, mesh, recall, seal,
                sessions, skills, vault, wire)
 
 
@@ -68,6 +68,8 @@ def _parser() -> argparse.ArgumentParser:
     ad = ars.add_parser("add", help="create an area")
     ad.add_argument("name", help="lowercase letters, digits and '-'")
     ad.add_argument("description", nargs="?", help="what goes there (default for suggested areas)")
+    dc = ars.add_parser("decline", help="the user does not want this area: stop suggesting it")
+    dc.add_argument("name")
 
     me = sub.add_parser("me", help="show me.md, or replace its body (secret-checked)")
     mbody = me.add_mutually_exclusive_group()
@@ -168,6 +170,14 @@ def _area(args, notes_dir: Path) -> int:
             return 5
         print("AREA CREATED:", _display(path, notes_dir))
         return 0
+    if args.area_cmd == "decline":
+        try:
+            inbox.decline(notes_dir, args.name)
+        except ValueError as e:
+            print(f"ERROR: {e}")
+            return 5
+        print(f"DECLINED: {args.name} will not be suggested again. Nothing was created or moved.")
+        return 0
     existing = vault.areas(notes_dir)
     for name in existing:
         count = sum(1 for p in vault.iter_notes(notes_dir / name) if p.stem != name)
@@ -176,6 +186,8 @@ def _area(args, notes_dir: Path) -> int:
     if suggested:
         print("Suggested, not created yet: " + ", ".join(suggested)
               + "  (python lore.py area add <name>)")
+    if inbox.declined(notes_dir):
+        print("Declined: " + ", ".join(inbox.declined(notes_dir)))
     return 0
 
 
@@ -375,6 +387,9 @@ def main(argv=None, notes_dir: Path | None = None) -> int:
         print("WRITTEN:", _display(path, notes_dir))
         for w in warnings:
             print("WARNING:", w)
+        if args.area == inbox.INBOX:
+            for theme in inbox.themes(notes_dir, tags=args.tags.split(",")):
+                print(inbox.suggestion(theme))
         return 0
 
     if args.cmd == "mesh":

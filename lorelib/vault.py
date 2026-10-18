@@ -184,10 +184,14 @@ def areas(vault_dir: Path) -> list[str]:
                   and (p / f"{p.name}.md").is_file())
 
 
+def valid_area_name(name: str) -> bool:
+    return bool(_AREA_NAME.match(name or ""))
+
+
 def add_area(vault_dir: Path, name: str, description: str | None = None,
              now: datetime | None = None, machine: str | None = None) -> Path:
     """Create <name>/<name>.md. An existing folder is adopted; its files stay as they are."""
-    if not _AREA_NAME.match(name or ""):
+    if not valid_area_name(name):
         raise ValueError(f"invalid area name: {name!r} (lowercase letters, digits and '-', "
                          "at most 40 characters)")
     path = vault_dir / name / f"{name}.md"

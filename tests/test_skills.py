@@ -43,6 +43,7 @@ class SourceTest(unittest.TestCase):
         for phrase in ("save", "wrap up", "write this to memory", "note this", "do you remember"):
             self.assertIn(phrase, desc["lore-memory"])
         self.assertIn("check the memory", desc["lore-check"])
+        self.assertIn("organize the memory", desc["lore-check"])
         for phrase in ("set up the folders", "the hooks"):
             self.assertIn(phrase, desc["lore-setup"])
         for d in desc.values():

@@ -31,7 +31,7 @@ Update `me.md` only with things the user says about themselves and wants remembe
 ## New areas: suggest, never create on your own
 - After a note goes to `inbox`, `jot` may print an `INBOX:` line: how many notes wait there and their tags with counts. lore does not judge meaning; you do. If several of those tags are one theme that no area covers (`antrenman 2, spor 1` is one theme), or the user clearly starts something new in their life or work, suggest an area in one sentence: its name and why. Example: "Three notes about training have piled up in inbox; shall I create a `spor` area?" Do not suggest an area listed as declined.
 - Create it only after the user says yes: `python {{LORE}}/lore.py area add <name> "<what goes there>"` (lowercase, digits and `-`).
-- Moving existing notes into the new area is a separate question. List the notes and move nothing without approval.
+- Moving existing notes into the new area is a separate question. List the notes and move nothing without approval; then use `lore.py move` (see Maintenance).
 - If the user says no, run `python {{LORE}}/lore.py area decline <name>` so it is never suggested again. Suggest each area at most once per session.
 
 ## At the end of a session: the outcome record
@@ -53,4 +53,5 @@ When meaningful work is done, record the session outcome BEFORE your final answe
 
 ## Maintenance
 - `python {{LORE}}/lore.py mesh`: broken wikilinks, orphan notes, broken outcome blocks; as information, meaningful sessions without an outcome (from the session log in `.lore/logs`).
+- Organizing, only when the user asks ("organize the memory"): `python {{LORE}}/lore.py organize` prints a short inventory (areas, tags with counts, inbox notes); work from it instead of opening notes. Propose one plan (tags that mean the same, inbox notes that belong to an area, a new area) and wait for approval. Then apply only what was approved with `lore.py tag merge <tags> --into <tag>` and `lore.py move <notes> --to <area>`: both are dry runs until `--apply`. `move` keeps links working. Never delete or rename notes.
 - `python {{LORE}}/lore.py update`: when the user asks to update lore. Pulls the new code, refreshes the managed files above (keeping the user's edits), and reports whether the hooks need attention. If it reports hook changes, show them with `python {{LORE}}/lore.py wire` and apply with `--apply` only after a clear "yes".

@@ -68,7 +68,8 @@ def tag_summary(vault_dir: Path, notes: list[Path] | None = None) -> list[tuple[
     for path in _inbox_notes(vault_dir) if notes is None else notes:
         meta, _ = frontmatter.parse(vault.read(path))
         seen = set()
-        for tag in meta.get("tags") or []:
+        tags = meta.get("tags") or []
+        for tag in tags if isinstance(tags, list) else [tags]:
             tag = str(tag).strip()
             key = fold(tag)
             if not tag or key.startswith("client/") or key in seen:

@@ -9,8 +9,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from . import (config, frontmatter, guard, hook, inbox, install, jot, mesh, recall, seal,
-               sessions, skills, vault, wire)
+from . import (config, frontmatter, guard, hook, inbox, install, jot, mesh, organize, recall,
+               seal, sessions, skills, vault, wire)
 
 
 def _display(path: Path, notes_dir: Path) -> str:
@@ -70,6 +70,20 @@ def _parser() -> argparse.ArgumentParser:
     ad.add_argument("description", nargs="?", help="what goes there (default for suggested areas)")
     dc = ars.add_parser("decline", help="the user does not want this area: stop suggesting it")
     dc.add_argument("name")
+
+    sub.add_parser("organize", help="short inventory (areas, tags, inbox) to plan a tidy-up")
+
+    tg = sub.add_parser("tag", help="change tags across notes")
+    tgs = tg.add_subparsers(dest="tag_cmd", required=True)
+    tm = tgs.add_parser("merge", help="replace tags with one tag; a dry run unless --apply")
+    tm.add_argument("tags", nargs="+")
+    tm.add_argument("--into", required=True)
+    tm.add_argument("--apply", action="store_true")
+
+    mv = sub.add_parser("move", help="move notes into an area, keeping links; dry run unless --apply")
+    mv.add_argument("notes", nargs="+", help="vault-relative or full paths")
+    mv.add_argument("--to", required=True, help="an existing area")
+    mv.add_argument("--apply", action="store_true")
 
     me = sub.add_parser("me", help="show me.md, or replace its body (secret-checked)")
     mbody = me.add_mutually_exclusive_group()
@@ -188,6 +202,39 @@ def _area(args, notes_dir: Path) -> int:
               + "  (python lore.py area add <name>)")
     if inbox.declined(notes_dir):
         print("Declined: " + ", ".join(inbox.declined(notes_dir)))
+    return 0
+
+
+_DRY = "Dry run: nothing written. Show the user; only after a clear yes, add --apply."
+
+
+def _tag(args, notes_dir: Path) -> int:
+    try:
+        changed = organize.merge_tags(notes_dir, args.tags, args.into, apply=args.apply)
+    except ValueError as e:
+        print(f"ERROR: {e}")
+        return 5
+    word = "UPDATED" if args.apply else "WOULD UPDATE"
+    for path in changed:
+        print(f"{word}: {vault.rel(path, notes_dir)}")
+    print(f"{len(changed)} notes; tags {', '.join(args.tags)} -> {args.into}."
+          + ("" if args.apply else " " + _DRY))
+    return 0
+
+
+def _move(args, notes_dir: Path) -> int:
+    try:
+        plan = organize.move_notes(notes_dir, args.notes, args.to, apply=args.apply)
+    except ValueError as e:
+        print(f"ERROR: {e}")
+        return 5
+    word = "" if args.apply else "WOULD "
+    for src, dest in plan.moves:
+        print(f"{word}MOVE: {vault.rel(src, notes_dir)} -> {vault.rel(dest, notes_dir)}")
+    for path, n in plan.link_updates:
+        print(f"{word}UPDATE LINKS: {vault.rel(path, notes_dir)} ({n})")
+    if not args.apply:
+        print(_DRY)
     return 0
 
 
@@ -409,5 +456,15 @@ def main(argv=None, notes_dir: Path | None = None) -> int:
 
     if args.cmd == "welcome":
         return _welcome(args, notes_dir)
+
+    if args.cmd == "organize":
+        print(organize.inventory(notes_dir))
+        return 0
+
+    if args.cmd == "tag":
+        return _tag(args, notes_dir)
+
+    if args.cmd == "move":
+        return _move(args, notes_dir)
 
     return 2

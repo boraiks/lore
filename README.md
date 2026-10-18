@@ -1,11 +1,25 @@
+<div align="center">
+
 # lore
 
-**A second brain your AI agents share: plain Markdown, opened in Obsidian, kept by Claude Code, Codex and Antigravity.**
+### A second brain your AI agents share.
 
-![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+**Plain Markdown, opened in Obsidian, kept by Claude Code, Codex and Antigravity. Nothing leaves your computer.**
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 ![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
 ![Dependencies: none](https://img.shields.io/badge/dependencies-stdlib%20only-brightgreen)
+![Network: none](https://img.shields.io/badge/network-none-brightgreen)
 ![Clients](https://img.shields.io/badge/clients-Claude%20Code%20%7C%20Codex%20%7C%20Antigravity-8A2BE2)
+
+[Quick start](#quick-start) · [Two folders](#two-folders) · [Day to day](#day-to-day) · [Updating](#updating) · [Commands](#commands) · [FAQ](#faq)
+
+<img src="docs/two-folders.svg" alt="Two folders: lore holds the code and updates from GitHub; lore-vault holds your notes and is opened in Obsidian. Claude Code, Codex and Antigravity work in the vault and run lore.py." width="860">
+
+</div>
+
+> [!IMPORTANT]
+> lore is **two folders**. `lore` is the code from this repository: it takes every update and holds nothing of yours. `lore-vault` is your notes: it never enters this repository, and no update rewrites it.
 
 You switch between AI clients; your memory should not care. lore keeps one vault of Markdown notes that every client reads and writes the same way. Agents search it instead of loading it whole, and at the end of real work they leave a short, linked record of what happened.
 
@@ -14,9 +28,9 @@ You switch between AI clients; your memory should not care. lore keeps one vault
 - **Private by design.** Every write passes a secret filter. Hooks act only inside folders you allow, private folders and sessions are skipped, and a test fails if machine details ever leak into this repository.
 - **Turkish-aware.** Search tolerates Turkish suffixes (`mülakatlar` finds a note saying `Mülakatı`), and the secret filter knows Turkish ID and phone numbers. Every other language works with plain matching.
 
-## Quick start: one folder, one message
+## Quick start
 
-1. In Obsidian, create a new vault or pick the folder of an existing one.
+1. In Obsidian, create a new vault (or pick an existing one). This folder becomes your `lore-vault`; it can live anywhere.
 2. Open that same folder in your AI client (Claude Code, Codex or Antigravity).
 3. Paste this message, in any language you like:
 
@@ -26,35 +40,39 @@ Keep every note that is already here. Show me each hook change before applying i
 At the end, save a test note and read it back so we can check it together.
 ```
 
-The agent checks Python and git, clones lore into a separate folder, and turns your folder into a lore vault without touching what is already there. Then it asks a few short questions (all skippable): what you will use the memory for, what you are working on, how you like answers. It creates only the areas you choose and writes your answers to `me.md`. Finally it runs the tests, shows you the hook changes and applies them only after you say yes, and saves a test note and reads it back. You only answer its questions and, in Codex, approve the hooks with `/hooks`.
+The agent does the rest:
+
+| Step | What happens |
+|---|---|
+| Check | Python and git are there. |
+| Code | lore is cloned into its own folder in your home folder (`~/lore`), apart from your notes. |
+| Vault | Your folder gets lore's rules, skills and Obsidian starter settings. Nothing already there is touched. |
+| Intro | A few short, skippable questions: what you use the memory for, what you work on, how you like answers. Only the areas you choose are created; your answers go to `me.md`. |
+| Hooks | You see every change to your clients' settings first; nothing is applied without your yes. In Codex, approve them with `/hooks`. |
+| Test | The tests run, and a test note is saved and read back. |
 
 Prefer to do it by hand? See [Manual setup](#manual-setup).
 
-## Talking to your agent
+## Two folders
 
-| You say (in any language) | The agent |
-|---|---|
-| "Do you remember the Acme interview?" | searches with `recall` and opens only the matching notes |
-| "Note this: ..." | writes a note with `jot`, linked to a related one |
-| "Save" / "Wrap up" | records the session outcome with `seal` |
-| "Check the memory" | runs `mesh` and suggests fixes without touching anything |
-| "Don't save this session" | marks it private; nothing is recorded |
-| *(three training notes pile up in inbox)* | suggests a `fitness` area in one sentence and creates it only if you agree |
-| "Remember that I prefer short answers" | updates `me.md`, which every session reads first |
+|   | `lore` | `lore-vault` |
+|---|---|---|
+| **What it is** | the code: `lore.py`, rules, skills, tests | your notes: Markdown, `me.md`, your areas |
+| **Where it comes from** | cloned from this repository | the folder you chose at setup |
+| **What changes it** | updates (`git pull`) | you and your agents |
+| **Personal data** | never | yes, and only here |
+| **You open it in** | nothing; you never need to | Obsidian and your AI client |
+| **Default place** | `~/lore` (Windows: `%USERPROFILE%\lore`) | anywhere you like |
 
-Long session and no outcome yet? The hook reminds the agent once, right before it stops.
+**How do they find each other?** Setup writes down each folder's full path, so nothing is hard-coded and no drive letter is assumed:
+- The vault's `AGENTS.md` and skills hold the path to the code, so an agent working in the vault knows which `lore.py` to run.
+- `~/.lore.json` holds the path to the vault (written by `lore.py home`; the `LORE_HOME` environment variable overrides it), so the code knows where your notes are.
+- The hooks in your clients' settings call the code's `lore.py`.
 
-## How it works
+There is no server, no sync and nothing running in the background. Moved a folder? For the vault, run `python <lore>/lore.py home <new path>`. For the code, run `python <new path>/lore.py update --no-pull` to rewrite the path in the vault, then `lore.py wire` to see the hook change.
 
-```
- Claude Code ─┐                          ┌─ lore-vault/  (your notes, private)
- Codex ───────┼── lore.py  (this repo) ──┤     opened directly in Obsidian
- Antigravity ─┘   recall · jot · seal    └─ .lore/       (local logs and settings)
-        │
-        └── hooks: remind once, log that a session happened (no content)
-```
-
-**Two folders.** `lore` (this repository) holds the code, tests, agent instructions and skills, and no personal data. Your vault holds your notes and is never part of this repository:
+<details>
+<summary><b>What is inside the vault</b></summary>
 
 ```
 lore-vault/
@@ -72,16 +90,33 @@ lore-vault/
 └── .lore/             logs, session log, settings, list of installed files (hidden)
 ```
 
-lore finds the vault through the `LORE_HOME` environment variable, then `~/.lore.json` (written by `lore.py home`), then a `lore-vault` folder next to the repository.
+</details>
 
-## Areas are yours
+## Day to day
+
+After setup there is nothing to run. Keep the vault open in Obsidian, open the same folder in your AI client, and talk:
+
+| You say (in any language) | The agent |
+|---|---|
+| "Do you remember the Acme interview?" | searches with `recall` and opens only the matching notes |
+| "Note this: ..." | writes a note with `jot`, linked to a related one |
+| "Save" / "Wrap up" | records the session outcome with `seal` |
+| "Check the memory" | runs `mesh` and suggests fixes without touching anything |
+| "Don't save this session" | marks it private; nothing is recorded |
+| "Remember that I prefer short answers" | updates `me.md`, which every session reads first |
+| "Update lore" | pulls the new code and refreshes the vault's rules ([Updating](#updating)) |
+| *(three training notes pile up in inbox)* | suggests a `fitness` area in one sentence and creates it only if you agree |
+
+Long session and no outcome yet? The hook reminds the agent once, right before it stops. Notes the agent writes show up in Obsidian at once.
+
+### Areas are yours
 
 Not everyone studies or hunts for jobs, so lore forces no topics on you. It creates only `inbox` and `sessions`, the two areas it needs itself. Everything else is your choice:
 - During setup the agent asks what you will use the memory for and creates just those areas. `lore.py area list` shows yours and the suggested ones (`career`, `courses`, `ideas`, `research`, `personal`, `work`); `lore.py area add <name> "<what goes there>"` adds any area you like.
 - An area is simply a folder holding a note of its own name, so a folder and note you make in Obsidian count too.
 - Over time, notes that fit no area land in `inbox`. When a theme piles up there, the agent **suggests** a new area in one sentence. It creates the area only if you agree, and moves existing notes into it only after a separate yes.
 
-## Obsidian
+### Obsidian
 
 - Open the vault folder itself with "Open folder as vault": the areas sit at its root, with no extra `notes/` level.
 - Hidden folders (`.lore`, `.obsidian`) stay out of sight, and lore ignores `_templates` and the agent files when it searches or checks links.
@@ -91,10 +126,24 @@ Not everyone studies or hunts for jobs, so lore forces no topics on you. It crea
   - **links = topic**: `[[links]]` connect notes about the same thing;
   - **`#client/...` tags = where a note was written**: `jot` and `seal` tag every note with its client (`#client/claude`, `#client/codex`, `#client/antigravity`). With the graph's **Tags** option on, notes cluster around their client; turn it off for a pure topic view.
 
-lore creates these Obsidian files only when they are missing, so an existing Obsidian setup is never changed. In a brand-new vault everything above is ready. If the folder was already an Obsidian vault, do two things once:
+lore creates these Obsidian files only when they are missing, so an existing Obsidian setup is never changed. If Obsidian had already written its own settings (an existing vault, or a new one created in Obsidian before setup), do two things once:
 
 1. **Settings → Files and links → Excluded files:** add `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `_templates/`. They are instructions and a template, not notes, so they leave the graph and search.
 2. **Graph view → Filters → Tags:** turn it on to see the `#client/...` nodes.
+
+## Updating
+
+Open your vault in your AI client and say **"update lore"**. The agent runs:
+
+    python <path-to-lore>/lore.py update
+
+which does three things:
+1. **Pulls the new code** with `git pull --ff-only`. If that fails (for example because lore's own files were edited), it stops and changes nothing.
+2. **Refreshes the vault's rules and skills** (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/skills/`, `.agents/skills/`). lore remembers what it last wrote to each of these files. A file you never touched takes the new version; a file you edited is kept as it is, and the new version waits next to it as `<file>.new`.
+3. **Checks the hooks** and tells you if they need a change. Applying it is a separate step that you approve (`lore.py wire`, then `--apply`).
+
+> [!TIP]
+> Your notes are safe across updates. They are not in the code folder, so `git pull` has nothing of yours to change. Only lore's own files are refreshed, never notes, area notes or Obsidian settings. Note format changes never rewrite notes on their own: if a future version ever needs to change existing notes, that will be a separate command that shows a dry run first.
 
 ## Manual setup
 
@@ -114,22 +163,6 @@ Then open the vault folder in Obsidian, and install the session hooks. Look firs
 - **Antigravity** reads the hook file after a restart (details: [docs/antigravity-hooks.md](docs/antigravity-hooks.md)).
 - Without hooks lore still works; the agent follows the rules in `AGENTS.md`.
 
-## Updating
-
-Open your vault in your AI client and say **"update lore"**. The agent runs:
-
-    python <path-to-lore>/lore.py update
-
-which does three things:
-1. **Pulls the new code** with `git pull --ff-only`. If that fails (for example because lore's own files were edited), it stops and changes nothing.
-2. **Refreshes the vault's rules and skills** (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.claude/skills/`, `.agents/skills/`). lore remembers what it last wrote to each of these files. A file you never touched takes the new version; a file you edited is kept as it is, and the new version waits next to it as `<file>.new`.
-3. **Checks the hooks** and tells you if they need a change. Applying it is a separate step that you approve (`lore.py wire`, then `--apply`).
-
-Your notes are safe across updates:
-- **They are not in the code folder.** `git pull` has nothing of yours to change.
-- **Only lore's own files are refreshed,** never notes, area notes or Obsidian settings; missing ones are added.
-- **Note format changes never rewrite notes on their own.** If a future version ever needs to change existing notes, that will be a separate command that shows a dry run first.
-
 ## Commands
 
 | Command | What it does |
@@ -148,7 +181,10 @@ Your notes are safe across updates:
 
 The session id comes from an environment variable in Claude Code, from the reminder in Codex, and from the `conversationId` in Antigravity.
 
-## Hooks
+<details>
+<summary><b>Hooks: what they do and why they never save the chat</b></summary>
+
+<br>
 
 A hook never writes into your notes. It does two things:
 - **Remind:** on `Stop`, once per session, when there is no outcome yet and the session is past a size threshold (no reminders for small talk). Claude Code and Codex continue on `decision: block`, Antigravity on `decision: continue`.
@@ -158,7 +194,12 @@ It always stays quiet and exits 0; problems go to `.lore/logs/lore.log`.
 
 *Why not let the hook save the conversation?* A hook can only store a raw excerpt of the chat. That records talk, not work; it widens the room for personal details to leak in and clutters search. A few linked lines from the agent that understood the session are smaller and far more useful.
 
-## Privacy and settings
+</details>
+
+<details>
+<summary><b>Privacy and settings</b></summary>
+
+<br>
 
 Optional `lore-vault/.lore/config.json`:
 
@@ -173,7 +214,12 @@ Optional `lore-vault/.lore/config.json`:
 
 The secret filter is pattern based: it catches common keys, tokens, passwords, card and IBAN numbers, national IDs and phone numbers, but cannot promise to catch everything. Email addresses and names are not blocked.
 
-## Skills
+</details>
+
+<details>
+<summary><b>Skills</b></summary>
+
+<br>
 
 Three short skills, one per group of commands; the real rules live in `AGENTS.md`.
 
@@ -185,7 +231,12 @@ Three short skills, one per group of commands; the real rules live in `AGENTS.md
 
 The single source is `skills/<name>/SKILL.md`; `lore.py home`, `seed` and `update` install it into the vault's `.claude/skills/` and `.agents/skills/` with the path to the code filled in. Agents do not edit skill or rule files unless you ask.
 
-## Note header
+</details>
+
+<details>
+<summary><b>Note header</b></summary>
+
+<br>
 
 ```yaml
 title: Acme internship application
@@ -200,15 +251,45 @@ client: claude        # claude | codex | antigravity | manual | import
 
 Session notes also carry `session` and `summarizer: agent`, plus `private: true` if private.
 
+</details>
+
 ## FAQ
 
-**Does any of my data leave my computer?** No. lore makes no network calls and calls no models. Your AI client sees what it already sees in the conversation.
+<details>
+<summary><b>Does any of my data leave my computer?</b></summary>
 
-**Can I use my existing Obsidian vault?** Yes. lore only adds what is missing; your notes and Obsidian settings stay as they are.
+No. lore makes no network calls and calls no models. Your AI client sees what it already sees in the conversation. The only network step is `git pull` when you ask for an update, and it only downloads code.
+</details>
 
-**Several computers?** Keep the vault in a synced folder or a private git repository, and run `lore.py home <path>` on each machine.
+<details>
+<summary><b>Do I have to put the folders on <code>C:</code>?</b></summary>
 
-**A hook does not fire?** Check `.lore/logs/lore.log`, run `python lore.py wire` to compare, and in Codex approve the hooks with `/hooks`. lore keeps working without hooks.
+No. The vault is whatever folder you pick, on any drive or in a synced folder. The code goes to your home folder by default. Setup records both full paths, so lore works wherever they are.
+</details>
+
+<details>
+<summary><b>Can I use my existing Obsidian vault?</b></summary>
+
+Yes. lore only adds what is missing; your notes and Obsidian settings stay as they are.
+</details>
+
+<details>
+<summary><b>Can I delete the <code>lore</code> folder?</b></summary>
+
+Your notes would survive, since they live in the vault, but the agents and hooks would lose their commands. Clone it again into the same place to bring everything back.
+</details>
+
+<details>
+<summary><b>Several computers?</b></summary>
+
+Keep the vault in a synced folder or a private git repository, clone lore on each machine, and run `lore.py home <path>` there.
+</details>
+
+<details>
+<summary><b>A hook does not fire?</b></summary>
+
+Check `.lore/logs/lore.log`, run `python lore.py wire` to compare, and in Codex approve the hooks with `/hooks`. lore keeps working without hooks.
+</details>
 
 ## Contributing
 

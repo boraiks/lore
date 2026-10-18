@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 470" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>lore: two folders</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8b949e"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="958" height="468" rx="18" fill="#0d1117" stroke="#30363d" stroke-width="2"/>
+
+  <!-- sources above the cards -->
+  <rect x="95" y="28" width="270" height="44" rx="22" fill="#161b22" stroke="#30363d"/>
+  <text x="230" y="56" text-anchor="middle" font-size="16" fill="#c9d1d9">github.com/boraiks/lore</text>
+  <line x1="230" y1="74" x2="230" y2="116" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="242" y="100" font-size="13" fill="#8b949e">"update lore" (git pull)</text>
+
+  <rect x="625" y="28" width="210" height="44" rx="22" fill="#161b22" stroke="#30363d"/>
+  <text x="730" y="56" text-anchor="middle" font-size="16" fill="#c9d1d9">Obsidian</text>
+  <line x1="730" y1="74" x2="730" y2="116" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="742" y="100" font-size="13" fill="#8b949e">open folder as vault</text>
+
+  <!-- lore: the code -->
+  <rect x="40" y="120" width="380" height="200" rx="14" fill="#161b22" stroke="#4c9aff" stroke-width="2"/>
+  <rect x="40" y="120" width="380" height="8" rx="4" fill="#4c9aff"/>
+  <text x="66" y="166" font-size="26" font-weight="700" fill="#ffffff" font-family="ui-monospace, 'Cascadia Code', Consolas, monospace">lore/</text>
+  <text x="66" y="192" font-size="15" fill="#4c9aff">the code: updates from GitHub</text>
+  <text x="66" y="226" font-size="15" fill="#c9d1d9">• lore.py, rules, skills, tests</text>
+  <text x="66" y="254" font-size="15" fill="#c9d1d9">• no personal data, safe to update</text>
+  <text x="66" y="282" font-size="15" fill="#c9d1d9">• you never need to open it</text>
+
+  <!-- lore-vault: your notes -->
+  <rect x="540" y="120" width="380" height="200" rx="14" fill="#161b22" stroke="#36b37e" stroke-width="2"/>
+  <rect x="540" y="120" width="380" height="8" rx="4" fill="#36b37e"/>
+  <text x="566" y="166" font-size="26" font-weight="700" fill="#ffffff" font-family="ui-monospace, 'Cascadia Code', Consolas, monospace">lore-vault/</text>
+  <text x="566" y="192" font-size="15" fill="#36b37e">your notes: yours only</text>
+  <text x="566" y="226" font-size="15" fill="#c9d1d9">• Markdown notes, me.md, your areas</text>
+  <text x="566" y="254" font-size="15" fill="#c9d1d9">• the folder you open everywhere</text>
+  <text x="566" y="282" font-size="15" fill="#c9d1d9">• never uploaded, never in the repo</text>
+
+  <!-- between the cards -->
+  <line x1="424" y1="190" x2="534" y2="190" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="480" y="176" text-anchor="middle" font-size="12" fill="#8b949e">rules, skills</text>
+  <line x1="536" y1="260" x2="426" y2="260" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="480" y="284" text-anchor="middle" font-size="12" fill="#8b949e">path to the code</text>
+
+  <!-- the clients -->
+  <rect x="250" y="380" width="460" height="56" rx="14" fill="#161b22" stroke="#b37feb" stroke-width="2"/>
+  <text x="480" y="406" text-anchor="middle" font-size="17" font-weight="600" fill="#ffffff">Claude Code · Codex · Antigravity</text>
+  <text x="480" y="426" text-anchor="middle" font-size="13" fill="#b37feb">opened in the vault, they run lore.py</text>
+  <line x1="300" y1="378" x2="230" y2="326" stroke="#8b949e" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#arrow)"/>
+  <text x="196" y="360" text-anchor="middle" font-size="12" fill="#8b949e">recall · jot · seal</text>
+  <line x1="660" y1="378" x2="730" y2="326" stroke="#8b949e" stroke-width="2" stroke-dasharray="5 5" marker-end="url(#arrow)"/>
+  <text x="772" y="360" text-anchor="middle" font-size="12" fill="#8b949e">read and write notes</text>
+</svg>

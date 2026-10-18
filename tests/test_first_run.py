@@ -148,6 +148,29 @@ class FirstRunCommandsTest(VaultCase):
         self.assertNotEqual(code, 0)
         self.assertIn(outer.as_posix(), out)
 
+    def test_open_graph_tab_gets_a_warning(self):
+        # A graph tab restored from Obsidian's workspace writes its own (empty) colours over
+        # graph.json, so filled colours vanish until the tab is closed and opened again.
+        target = self.notes.parent / "kasa"
+        (target / ".obsidian").mkdir(parents=True)
+        (target / ".obsidian" / "graph.json").write_text('{"colorGroups": []}', encoding="utf-8")
+        (target / ".obsidian" / "workspace.json").write_text(
+            '{"main": {"children": [{"type": "leaf", "state": {"type": "graph", "state": {}}}]}}',
+            encoding="utf-8")
+        self.assertTrue(vault.graph_tab_open(target))
+        code, out = self.run_cli("home", str(target))
+        self.assertEqual(code, 0, out)
+        self.assertIn("FILLED: .obsidian/graph.json", out)
+        self.assertIn("NOTE: a graph tab is open", out)
+
+    def test_no_warning_without_a_graph_tab(self):
+        target = self.notes.parent / "kasa"
+        (target / ".obsidian").mkdir(parents=True)
+        (target / ".obsidian" / "workspace.json").write_text("{bozuk", encoding="utf-8")
+        self.assertFalse(vault.graph_tab_open(target))
+        code, out = self.run_cli("home", str(target))
+        self.assertNotIn("NOTE: a graph tab", out)
+
     def test_me_prints_the_questions_while_blank(self):
         vault.seed(self.notes)
         code, out = self.run_cli_vault("me")

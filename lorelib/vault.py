@@ -400,6 +400,24 @@ def _fill_json(path: Path, wanted: dict) -> str | None:
     return "filled"
 
 
+def graph_tab_open(vault_dir: Path) -> bool:
+    """True if Obsidian's saved workspace has a graph tab. Such a tab writes its own
+    settings over graph.json when Obsidian starts, so colours filled in meanwhile vanish."""
+    try:
+        data = json.loads(read(vault_dir / ".obsidian" / "workspace.json"))
+    except (OSError, ValueError):
+        return False
+
+    def walk(node) -> bool:
+        if isinstance(node, dict):
+            return node.get("type") == "graph" or any(walk(v) for v in node.values())
+        if isinstance(node, list):
+            return any(walk(v) for v in node)
+        return False
+
+    return walk(data)
+
+
 def obsidian_starter(vault_dir: Path) -> list[tuple[Path, str]]:
     """A note template with lore's header, graph colours per area, and the agent files
     excluded from the graph. A vault made in Obsidian already holds blank settings files,

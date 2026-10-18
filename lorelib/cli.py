@@ -339,6 +339,10 @@ def _set_up(vault_dir: Path) -> None:
     for path, action in vault.obsidian_starter(vault_dir):
         print("CREATED:" if action == "created" else "FILLED:",
               path.relative_to(vault_dir).as_posix())
+        if path.name == "graph.json" and vault.graph_tab_open(vault_dir):
+            print("NOTE: a graph tab is open in Obsidian; on its next start it writes its own "
+                  "settings over these colours. Ask the user to close the graph tab, then run "
+                  "`python lore.py seed` again and reopen the graph (Ctrl+G).")
     words = {"created": "CREATED", "updated": "UPDATED"}
     for change in install.install(vault_dir):
         if change.action in words:

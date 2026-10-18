@@ -84,6 +84,7 @@ Then tell the user, as a line of its own: "From now on, open your AI client in V
 ## 8. Obsidian
 Tell the user:
 - Open the vault folder itself in Obsidian ("Open folder as vault"); the areas sit at its root.
+- If `home` printed `NOTE: a graph tab is open`, ask the user to close the graph tab in Obsidian, run `python LORE/lore.py seed` again, and reopen the graph with Ctrl+G; otherwise Obsidian overwrites the colours on its next start.
 - Nothing needs setting by hand: the graph colours notes by area, and lore's agent files and template are hidden from the file list, graph and search.
 - To create notes by hand with lore's header, use the **Templates** core plugin (on by default in new vaults); its folder `_templates` is already set.
 - Only if `lore.py home` printed neither `CREATED:` nor `FILLED:` for `.obsidian/app.json`, the user already has their own Excluded files list; suggest adding `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` and `_templates/` to it (**Settings → Files and links → Excluded files**).

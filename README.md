@@ -102,7 +102,7 @@ After setup there is nothing to run. Keep the vault open in Obsidian, open the s
 | "Note this: ..." | writes a note with `jot`, linked to a related one |
 | "Save" / "Wrap up" | records the session outcome with `seal` |
 | "Check the memory" | runs `mesh` and suggests fixes without touching anything |
-| "Organize the memory" | reads a short inventory, proposes a plan (`antrenman` + `fitness` -> `spor`, these inbox notes -> `spor`) and applies only what you approve |
+| "Organize the memory" | reads a short inventory, proposes a plan (merge `fitness` into `spor`, add `spor` to notes tagged `antrenman` and keep it, move these inbox notes to `spor`) and applies only what you approve |
 | "Don't save this session" | marks it private; nothing is recorded |
 | "Remember that I prefer short answers" | updates `me.md`, which every session reads first |
 | "Update lore" | pulls the new code and refreshes the vault's rules ([Updating](#updating)) |
@@ -173,7 +173,7 @@ Then open the vault folder in Obsidian, and install the session hooks. Look firs
 | `seal` | Record the session outcome as an `## Outcome` block in `sessions/<date>-<client>-<topic>.md`, updated in place for the same session. |
 | `mesh` | Broken `[[links]]`, orphan notes, broken outcome blocks, and (as information) sessions without an outcome and the inbox: size, age, tags. |
 | `organize` | A short inventory for tidying up: areas, tags with counts, inbox notes. |
-| `tag merge <tags> --into <tag> [--apply]` | Replace tags across notes; edits only the header's tags and `updated` lines. |
+| `tag merge <tags> --into <tag> [--keep] [--apply]` | Replace tags across notes (synonyms), or with `--keep` add the broad tag and keep the old ones (sub-topics). Edits only the header's tags and `updated` lines. |
 | `move <notes> --to <area> [--apply]` | Move notes into an area and update the links to them; stops before anything if a file would be overwritten. |
 | `home [folder] [--this-folder]` | Show or set the vault, and set it up. Stops if another Obsidian vault is inside or above the folder. |
 | `area list` / `area add <name> ["<what>"]` / `area decline <name>` | Show the areas (and suggested ones), add one, or stop an area from being suggested. |

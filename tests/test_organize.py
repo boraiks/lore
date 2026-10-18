@@ -83,6 +83,17 @@ class TagMergeTest(OrganizeCase):
         organize.merge_tags(self.notes, ["calisma"], "ders", apply=True, now=LATER)
         self.assertEqual(self.meta(path)["tags"], ["ders", "client/claude"])
 
+    def test_keep_adds_the_broad_tag_and_keeps_the_specific_one(self):
+        a = self.note("inbox", "Koşu", ["kas", "antrenman"])
+        b = self.note("inbox", "Maç", ["spor", "antrenman"])
+        c = self.note("inbox", "Kitap", ["okuma"])
+        changed = organize.merge_tags(self.notes, ["antrenman"], "spor", apply=True, keep=True,
+                                      now=LATER)
+        self.assertEqual(changed, [a])                     # b already had spor; c had no source
+        self.assertEqual(self.meta(a)["tags"], ["kas", "spor", "antrenman", "client/claude"])
+        self.assertEqual(self.meta(b)["tags"], ["spor", "antrenman", "client/claude"])
+        self.assertEqual(self.meta(c)["tags"], ["okuma", "client/claude"])
+
     def test_bad_targets_are_refused(self):
         for into in ("", "client/x", "spor/alt"):
             with self.assertRaises(ValueError):
@@ -163,6 +174,10 @@ class CommandsTest(OrganizeCase):
         self.assertEqual(code, 0, out)
         self.assertIn("Dry run", out)
         self.assertEqual(self.meta(path)["tags"], ["antrenman", "client/claude"])
+        code, out = self.run_cli("tag", "merge", "antrenman", "--into", "spor", "--keep", "--apply")
+        self.assertEqual(code, 0, out)
+        self.assertIn("kept", out)
+        self.assertEqual(self.meta(path)["tags"], ["spor", "antrenman", "client/claude"])
         code, out = self.run_cli("tag", "merge", "antrenman", "--into", "spor", "--apply")
         self.assertEqual(code, 0, out)
         self.assertEqual(self.meta(path)["tags"], ["spor", "client/claude"])

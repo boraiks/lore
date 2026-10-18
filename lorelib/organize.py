@@ -125,9 +125,11 @@ def _write(path: Path, text: str) -> None:
 
 # --- tag merge -----------------------------------------------------------------------------
 
-def merge_tags(vault_dir: Path, sources, into: str, apply: bool = False,
+def merge_tags(vault_dir: Path, sources, into: str, apply: bool = False, keep: bool = False,
                now: datetime | None = None) -> list[Path]:
-    """Replace the source tags with `into` in every note that has one. Returns those notes."""
+    """Replace the source tags with `into` in every note that has one (synonyms). With
+    `keep`, add `into` before them and keep them (sub-topics: `antrenman` -> `spor,
+    antrenman`). Returns the notes that change."""
     into = "-".join(lower(str(into)).lstrip("#").split())
     if not into or "/" in into:
         raise ValueError("the target tag must be one plain word (no '/', not empty)")
@@ -146,10 +148,16 @@ def merge_tags(vault_dir: Path, sources, into: str, apply: bool = False,
         if not any(_key(t) in src for t in tags):
             continue
         new: list[str] = []
-        for tag in tags:
-            tag = into if _key(tag) in src else tag
-            if _key(tag) not in {_key(t) for t in new}:
-                new.append(tag)
+        if keep:
+            if _key(into) in {_key(t) for t in tags}:
+                continue
+            first = next(i for i, t in enumerate(tags) if _key(t) in src)
+            new = tags[:first] + [into] + tags[first:]
+        else:
+            for tag in tags:
+                tag = into if _key(tag) in src else tag
+                if _key(tag) not in {_key(t) for t in new}:
+                    new.append(tag)
         changed.append(path)
         if apply:
             _write(path, _edit(text, tags=new,

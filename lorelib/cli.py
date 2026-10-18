@@ -78,6 +78,8 @@ def _parser() -> argparse.ArgumentParser:
     tm = tgs.add_parser("merge", help="replace tags with one tag; a dry run unless --apply")
     tm.add_argument("tags", nargs="+")
     tm.add_argument("--into", required=True)
+    tm.add_argument("--keep", action="store_true",
+                    help="add the target and keep the old tags (sub-topics, not synonyms)")
     tm.add_argument("--apply", action="store_true")
 
     mv = sub.add_parser("move", help="move notes into an area, keeping links; dry run unless --apply")
@@ -210,15 +212,17 @@ _DRY = "Dry run: nothing written. Show the user; only after a clear yes, add --a
 
 def _tag(args, notes_dir: Path) -> int:
     try:
-        changed = organize.merge_tags(notes_dir, args.tags, args.into, apply=args.apply)
+        changed = organize.merge_tags(notes_dir, args.tags, args.into, apply=args.apply,
+                                      keep=args.keep)
     except ValueError as e:
         print(f"ERROR: {e}")
         return 5
     word = "UPDATED" if args.apply else "WOULD UPDATE"
     for path in changed:
         print(f"{word}: {vault.rel(path, notes_dir)}")
-    print(f"{len(changed)} notes; tags {', '.join(args.tags)} -> {args.into}."
-          + ("" if args.apply else " " + _DRY))
+    what = (f"{args.into} added, {', '.join(args.tags)} kept" if args.keep
+            else f"{', '.join(args.tags)} -> {args.into}")
+    print(f"{len(changed)} notes; tags {what}." + ("" if args.apply else " " + _DRY))
     return 0
 
 

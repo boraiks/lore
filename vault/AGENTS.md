@@ -16,6 +16,8 @@ Read `me.md` first with `python {{LORE}}/lore.py me`: it is short and tells you 
 
     python {{LORE}}/lore.py recall "internship interview"    # 5 results at most; --limit N (20 max)
 
+Search is by words, not meaning: a note may say `antrenman` where the user says `spor`. So search the topic together with its close words and synonyms, in one call: `recall "spor antrenman koşu fitness"`. Notes matching more of the words come first.
+
 Update `me.md` only with things the user says about themselves and wants remembered, through `python {{LORE}}/lore.py me --body-file -` (it keeps the header and rejects secrets). Never put ID numbers, addresses, passwords or similar there.
 
 ## Writing a note
@@ -27,7 +29,7 @@ Update `me.md` only with things the user says about themselves and wants remembe
 - Areas are the folders at the vault root that hold a note of their own name; `python {{LORE}}/lore.py area list` shows them. The user chooses them. Two always exist: `inbox` for anything without a clear area, and `sessions` for outcome records (written by `seal` only).
 
 ## New areas: suggest, never create on your own
-- When `jot` prints a `SUGGEST:` line (three or more inbox notes share a tag that no area covers), or the user clearly starts something new in their life or work, suggest an area in one sentence: its name and why. Example: "Three notes about training have piled up in inbox; shall I create a `fitness` area?"
+- After a note goes to `inbox`, `jot` may print an `INBOX:` line: how many notes wait there and their tags with counts. lore does not judge meaning; you do. If several of those tags are one theme that no area covers (`antrenman 2, spor 1` is one theme), or the user clearly starts something new in their life or work, suggest an area in one sentence: its name and why. Example: "Three notes about training have piled up in inbox; shall I create a `spor` area?" Do not suggest an area listed as declined.
 - Create it only after the user says yes: `python {{LORE}}/lore.py area add <name> "<what goes there>"` (lowercase, digits and `-`).
 - Moving existing notes into the new area is a separate question. List the notes and move nothing without approval.
 - If the user says no, run `python {{LORE}}/lore.py area decline <name>` so it is never suggested again. Suggest each area at most once per session.

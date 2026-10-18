@@ -1,8 +1,8 @@
-"""Inbox themes: notice when notes about one theme pile up in inbox, so the agent can
-suggest an area. Nothing here creates or moves anything; the user decides.
+"""Inbox summary: how many notes wait in inbox, how old they are, and which tags they carry.
 
-A theme is a tag shared by THRESHOLD or more inbox notes that no area covers yet. Client
-tags, generic tags, nested tags and themes the user declined are left out."""
+lore uses no model, so it cannot tell that `antrenman` and `spor` are one theme. It only
+shows the tags; the agent reads the meaning and may suggest an area, and the user decides.
+Nothing here creates or moves anything."""
 
 from __future__ import annotations
 
@@ -16,23 +16,15 @@ from . import frontmatter, vault
 from .turkish import fold
 
 INBOX = "inbox"
-THRESHOLD = 3
-GENERIC = frozenset({"lore", "note", "notes", "not", "notlar", "todo", "misc", "genel", "inbox",
-                     "area", "home", "me", "session", "sessions", "draft", "idea", "fikir"})
-
-
-@dataclass
-class Theme:
-    name: str            # a valid area name, built from the tag
-    count: int
-    notes: list[Path] = field(default_factory=list)
+MIN_NOTES = 3       # below this, jot prints no summary: nothing has piled up yet
+MAX_TAGS = 12       # keeps the summary line short
 
 
 @dataclass
 class Report:
     count: int = 0
     oldest_days: int | None = None
-    themes: list[Theme] = field(default_factory=list)
+    tags: list[tuple[str, int]] = field(default_factory=list)
 
 
 def _declined_path(vault_dir: Path) -> Path:
@@ -48,7 +40,7 @@ def declined(vault_dir: Path) -> list[str]:
 
 
 def decline(vault_dir: Path, name: str) -> Path:
-    """Remember that the user does not want this area, so it is not suggested again."""
+    """Remember that the user does not want this area, so agents stop suggesting it."""
     if not vault.valid_area_name(name):
         raise ValueError(f"invalid area name: {name!r} (lowercase letters, digits and '-')")
     names = declined(vault_dir)
@@ -69,29 +61,34 @@ def _inbox_notes(vault_dir: Path) -> list[Path]:
     return sorted(p for p in vault.iter_notes(folder) if p.stem != INBOX)
 
 
-def _area_name(tag: str) -> str | None:
-    if "/" in tag:
-        return None
-    name = vault.slugify(tag, 40)
-    return name if vault.valid_area_name(name) and name not in GENERIC else None
-
-
-def themes(vault_dir: Path, tags=None) -> list[Theme]:
-    """Themes at or past the threshold, largest first. With `tags`, only those tags."""
-    skip = set(vault.areas(vault_dir)) | set(vault.REQUIRED_AREAS) | set(declined(vault_dir))
-    only = None if tags is None else {_area_name(fold(t)) for t in tags}
-    found: dict[str, Theme] = {}
-    for path in _inbox_notes(vault_dir):
+def tag_summary(vault_dir: Path, notes: list[Path] | None = None) -> list[tuple[str, int]]:
+    """(tag, notes carrying it), largest first. Spellings that differ only in Turkish letters
+    count together; client tags are left out."""
+    counts: dict[str, list] = {}
+    for path in _inbox_notes(vault_dir) if notes is None else notes:
         meta, _ = frontmatter.parse(vault.read(path))
-        names = {_area_name(fold(str(t))) for t in (meta.get("tags") or [])}
-        for name in names - {None}:
-            if name in skip or (only is not None and name not in only):
+        seen = set()
+        for tag in meta.get("tags") or []:
+            tag = str(tag).strip()
+            key = fold(tag)
+            if not tag or key.startswith("client/") or key in seen:
                 continue
-            theme = found.setdefault(name, Theme(name, 0))
-            theme.count += 1
-            theme.notes.append(path)
-    return sorted((t for t in found.values() if t.count >= THRESHOLD),
-                  key=lambda t: (-t.count, t.name))
+            seen.add(key)
+            counts.setdefault(key, [tag, 0])[1] += 1
+    return [(tag, n) for key, (tag, n) in sorted(counts.items(), key=lambda kv: (-kv[1][1], kv[0]))]
+
+
+def summary_line(vault_dir: Path) -> str | None:
+    """One line for the agent after a note goes to inbox, once a few notes have piled up."""
+    notes = _inbox_notes(vault_dir)
+    if len(notes) < MIN_NOTES:
+        return None
+    tags = tag_summary(vault_dir, notes)
+    shown = ", ".join(f"{t} {n}" for t, n in tags[:MAX_TAGS]) or "none"
+    more = f" (+{len(tags) - MAX_TAGS} more)" if len(tags) > MAX_TAGS else ""
+    no = declined(vault_dir)
+    return (f"INBOX: {len(notes)} notes; tags: {shown}{more}"
+            + (f"; declined areas: {', '.join(no)}" if no else ""))
 
 
 def _created(path: Path) -> datetime:
@@ -107,11 +104,5 @@ def report(vault_dir: Path, now: datetime | None = None) -> Report:
     if not notes:
         return Report()
     oldest = min(_created(p) for p in notes)
-    return Report(len(notes), max(0, ((now or datetime.now()) - oldest).days), themes(vault_dir))
-
-
-def suggestion(theme: Theme) -> str:
-    return (f"SUGGEST: {theme.count} inbox notes share the theme \"{theme.name}\" and no area "
-            f"covers it. Ask the user in one sentence whether to create a `{theme.name}` area. "
-            f"On yes: python lore.py area add {theme.name} \"<what goes there>\" (moving the notes "
-            f"is a separate question). On no: python lore.py area decline {theme.name}")
+    return Report(len(notes), max(0, ((now or datetime.now()) - oldest).days),
+                  tag_summary(vault_dir, notes))

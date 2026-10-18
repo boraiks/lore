@@ -67,7 +67,7 @@ class Report:
     outcome_problems: list[tuple[str, str]] = field(default_factory=list)
     # (client, session, last seen, messages) from .lore/logs; information, not an error
     missing_outcome: list[tuple[str, str, str, int]] = field(default_factory=list)
-    # inbox size, age and themes without an area; information, not an error
+    # inbox size, age and tags; information, not an error
     inbox: inbox_mod.Report = field(default_factory=inbox_mod.Report)
 
     @property
@@ -135,9 +135,9 @@ def format_report(report: Report) -> str:
     box = report.inbox
     if box.count:
         out.append(f"Info: Inbox: {box.count} notes, oldest {box.oldest_days} days.")
-        if box.themes:
-            out.append("  Themes without an area (suggest one; the user decides): "
-                       + ", ".join(f"{t.name} ({t.count})" for t in box.themes))
+        if box.tags:
+            shown = box.tags[:inbox_mod.MAX_TAGS]
+            out.append("  Tags in inbox: " + ", ".join(f"{t} {n}" for t, n in shown))
     out.append(f"Total: {report.total} notes, {len(report.broken)} broken, "
                f"{len(report.orphans)} orphans, {len(report.outcome_problems)} outcome problems.")
     return "\n".join(out)

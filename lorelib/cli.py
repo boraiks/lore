@@ -388,8 +388,9 @@ def main(argv=None, notes_dir: Path | None = None) -> int:
         for w in warnings:
             print("WARNING:", w)
         if args.area == inbox.INBOX:
-            for theme in inbox.themes(notes_dir, tags=args.tags.split(",")):
-                print(inbox.suggestion(theme))
+            line = inbox.summary_line(notes_dir)
+            if line:
+                print(line)
         return 0
 
     if args.cmd == "mesh":

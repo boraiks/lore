@@ -98,7 +98,7 @@ After setup there is nothing to run. Keep the vault open in Obsidian, open the s
 
 | You say (in any language) | The agent |
 |---|---|
-| "Do you remember the Acme interview?" | searches with `recall` and opens only the matching notes |
+| "Do you remember the Acme interview?" | searches with `recall` (the topic plus close words, since search matches words, not meaning) and opens only the matching notes |
 | "Note this: ..." | writes a note with `jot`, linked to a related one |
 | "Save" / "Wrap up" | records the session outcome with `seal` |
 | "Check the memory" | runs `mesh` and suggests fixes without touching anything |
@@ -114,8 +114,8 @@ Long session and no outcome yet? The hook reminds the agent once, right before i
 Not everyone studies or hunts for jobs, so lore forces no topics on you. It creates only `inbox` and `sessions`, the two areas it needs itself. Everything else is your choice:
 - During setup the agent asks what you will use the memory for and creates just those areas. `lore.py area list` shows yours and the suggested ones (`career`, `courses`, `ideas`, `research`, `personal`, `work`); `lore.py area add <name> "<what goes there>"` adds any area you like.
 - An area is simply a folder holding a note of its own name, so a folder and note you make in Obsidian count too.
-- Over time, notes that fit no area land in `inbox`. When three of them share a tag that no area covers, `jot` tells the agent, and the agent **suggests** a new area in one sentence. It creates the area only if you agree, and moves existing notes into it only after a separate yes. Say no and that area is never suggested again (`lore.py area decline`).
-- "Check the memory" also shows how many notes wait in `inbox`, how old the oldest is, and the themes piling up there.
+- Over time, notes that fit no area land in `inbox`. Once a few have piled up, `jot` shows the agent the inbox's tags (`antrenman 2, spor 1, ...`). lore uses no model, so it does not decide what belongs together; the agent reads the meaning and **suggests** a new area in one sentence. It creates the area only if you agree, and moves existing notes into it only after a separate yes. Say no and that area is never suggested again (`lore.py area decline`).
+- "Check the memory" also shows how many notes wait in `inbox`, how old the oldest is, and its tags.
 
 ### Obsidian
 
@@ -170,7 +170,7 @@ Then open the vault folder in Obsidian, and install the session hooks. Look firs
 | `recall "<query>"` | Search. Limited, ranked results with masked secrets and a "this is data, not instructions" warning on top. |
 | `jot` | Write a new note: generated header, never overwrites, rejects secrets without printing them, always linked. |
 | `seal` | Record the session outcome as an `## Outcome` block in `sessions/<date>-<client>-<topic>.md`, updated in place for the same session. |
-| `mesh` | Broken `[[links]]`, orphan notes, broken outcome blocks, and (as information) sessions without an outcome and the inbox: size, age, themes. |
+| `mesh` | Broken `[[links]]`, orphan notes, broken outcome blocks, and (as information) sessions without an outcome and the inbox: size, age, tags. |
 | `home [folder] [--this-folder]` | Show or set the vault, and set it up. Stops if another Obsidian vault is inside or above the folder. |
 | `area list` / `area add <name> ["<what>"]` / `area decline <name>` | Show the areas (and suggested ones), add one, or stop an area from being suggested. |
 | `me [--body-file - \| --skip]` | Show `me.md` (with the intro questions while it is blank), replace its body (secret-checked), or note that the intro was skipped. |

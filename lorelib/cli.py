@@ -94,6 +94,10 @@ def _parser() -> argparse.ArgumentParser:
     mbody.add_argument("--body-file", help="UTF-8 file; '-' for stdin")
     mbody.add_argument("--skip", action="store_true",
                        help="remember that the user skipped the intro questions")
+    mbody.add_argument("--add", metavar="LINE",
+                       help="add one line, e.g. a preference the user stated (secret-checked)")
+    me.add_argument("--section", default=vault.ANSWERS,
+                    help=f"heading for --add (default: {vault.ANSWERS})")
 
     wl = sub.add_parser("welcome", help="Obsidian's untouched Welcome.md: show, or remove on yes")
     wl.add_argument("--remove", action="store_true",
@@ -268,6 +272,18 @@ def _intro_prompt() -> str:
 
 
 def _me(args, notes_dir: Path) -> int:
+    if args.add is not None:
+        try:
+            added = vault.add_me_line(notes_dir, args.add, args.section)
+        except guard.SecretRejected as e:
+            print(f"REJECTED: {e}. Nothing was written; remove that part.")
+            return 3
+        except ValueError as e:
+            print(f"ERROR: {e}")
+            return 5
+        print(f"SAVED to me.md under \"{args.section}\"; every client reads it at session start."
+              if added else "ALREADY in me.md; nothing changed.")
+        return 0
     if args.skip:
         print("SKIPPED: noted in me.md; the intro will not be offered again:",
               _display(vault.skip_intro(notes_dir), notes_dir))

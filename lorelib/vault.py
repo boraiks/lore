@@ -229,6 +229,48 @@ def set_me(vault_dir: Path, body: str, now: datetime | None = None) -> Path:
     return path
 
 
+ANSWERS = "How I like answers"
+
+
+def add_me_line(vault_dir: Path, line: str, section: str = ANSWERS,
+                now: datetime | None = None) -> bool:
+    """Add one line under a heading of me.md, for a preference the user stated ("from now
+    on ..."); the heading is created if missing. False if the line is already there."""
+    text = " ".join(line.split()).lstrip("- ").strip()
+    if not text:
+        raise ValueError("the line is empty")
+    findings = guard.scan(text, field="me")
+    if findings:
+        raise guard.SecretRejected(findings)
+    path = vault_dir / f"{ME}.md"
+    body = frontmatter.parse(read(path))[1] if path.exists() else _ME_BODY
+    lines = body.strip("\n").split("\n")
+
+    def norm(s: str) -> str:
+        return fold(s.strip().lstrip("-").strip())
+
+    if any(norm(l) == norm(text) for l in lines):
+        return False
+    heading = f"## {section}"
+    start = next((i for i, l in enumerate(lines) if l.strip() == heading), None)
+    if start is None:
+        at = next((i for i in range(len(lines) - 1, -1, -1)
+                   if lines[i].strip().startswith(f"Home: [[{HOME}")), len(lines))
+        block = [heading, f"- {text}", ""]
+        if at > 0 and lines[at - 1].strip():
+            block = [""] + block
+        lines[at:at] = block
+    else:
+        end = next((i for i in range(start + 1, len(lines))
+                    if lines[i].startswith("## ") or lines[i].strip().startswith(f"Home: [[{HOME}")),
+                   len(lines))
+        while end - 1 > start and not lines[end - 1].strip():
+            end -= 1
+        lines.insert(end, f"- {text}")
+    set_me(vault_dir, "\n".join(lines), now)
+    return True
+
+
 def nested_vaults(folder: Path) -> list[Path]:
     """Other Obsidian vaults above the folder or directly inside it. Creating a vault in
     Obsidian inside an existing folder makes <folder>/<name>/.obsidian, so the folder the

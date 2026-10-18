@@ -106,6 +106,7 @@ After setup there is nothing to run. Keep the vault open in Obsidian, open the s
 | "Undo that" | reverts the whole tidy-up with `undo` (notes you changed since are left alone) |
 | "Don't save this session" | marks it private; nothing is recorded |
 | "Remember that I prefer short answers" | updates `me.md`, which every session reads first |
+| "From now on, use - instead of a long dash" | saves it to `me.md` at once with `me --add`, so Claude Code, Codex and Antigravity all follow it |
 | "Update lore" | pulls the new code and refreshes the vault's rules ([Updating](#updating)) |
 | *(three training notes pile up in inbox)* | suggests a `fitness` area in one sentence and creates it only if you agree |
 
@@ -179,7 +180,7 @@ Then open the vault folder in Obsidian, and install the session hooks. Look firs
 | `undo` | Revert the latest organize run (tag merges and moves). Applied changes are recorded in `.lore/logs/organize.jsonl`: paths and tags only, never note text. |
 | `home [folder] [--this-folder]` | Show or set the vault, and set it up. Stops if another Obsidian vault is inside or above the folder. |
 | `area list` / `area add <name> ["<what>"]` / `area decline <name>` | Show the areas (and suggested ones), add one, or stop an area from being suggested. |
-| `me [--body-file - \| --skip]` | Show `me.md` (with the intro questions while it is blank), replace its body (secret-checked), or note that the intro was skipped. |
+| `me [--add "<line>" \| --body-file - \| --skip]` | Show `me.md` (with the intro questions while it is blank), add one line such as a stated preference, replace its body (both secret-checked), or note that the intro was skipped. |
 | `welcome [--remove]` | Find Obsidian's untouched `Welcome.md`; `--remove` moves it to `.trash` (only after a yes). |
 | `seed` | Create whatever is missing and refresh the vault's rules and skills; never touches notes. |
 | `update [--no-pull]` | Pull the new code, then do what `seed` does and report whether the hooks need a change. |

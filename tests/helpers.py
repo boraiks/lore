@@ -2,6 +2,7 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
+from unittest import mock
 
 from lorelib import config, logbook, seal, sessionlog, vault
 
@@ -26,6 +27,10 @@ class VaultCase(unittest.TestCase):
         sessionlog.LOG_PATH = root / "default-sessions.jsonl"
         vault.VAULT = vault.NOTES_DIR = root / "default-vault"
         vault.POINTER = root / "default-pointer.json"
+        # Whether Obsidian runs on this machine must not change a test's result.
+        running = mock.patch.object(vault, "obsidian_running", return_value=False)
+        self.obsidian_running = running.start()
+        self.addCleanup(running.stop)
 
     def tearDown(self):
         (logbook.LOG_PATH, vault.STATE_DIR, config.CONFIG_PATH, seal.AG_ROOTS,

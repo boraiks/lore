@@ -145,7 +145,7 @@ Not everyone studies or hunts for jobs, so lore forces no topics on you. It crea
 
 There is nothing to set by hand. If Obsidian already made its settings files (for example because you created the vault in Obsidian first), lore fills in only what is missing or empty there: the colour groups, the excluded files (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `_templates/`) and the template folder. Anything you set yourself stays as it is.
 
-**Colours missing in the graph?** A graph tab that was already open writes its own settings over lore's when Obsidian starts. Close the graph tab, run `python <lore>/lore.py seed` (or say "update lore"), then open the graph again with Ctrl+G. From then on Obsidian keeps the colours.
+**Colours missing in the graph?** While a graph tab is open, Obsidian keeps its own copy of the graph settings in that tab and writes it over `.obsidian/graph.json` as soon as you zoom or change the graph, so colours added to the file meanwhile are lost. lore therefore does not write the colours while Obsidian is open with a graph tab (it prints `HELD:`). Close Obsidian, run `python <lore>/lore.py seed` (or say "update lore"), then open Obsidian again. A graph tab restored on start reads the colours from the file, and from then on Obsidian keeps them.
 
 Obsidian's own `Welcome.md` stays until you say otherwise: the agent asks during setup and, on a yes, moves it to the vault's `.trash`, where Obsidian can restore it.
 

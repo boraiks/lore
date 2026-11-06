@@ -148,28 +148,72 @@ class FirstRunCommandsTest(VaultCase):
         self.assertNotEqual(code, 0)
         self.assertIn(outer.as_posix(), out)
 
-    def test_open_graph_tab_gets_a_warning(self):
-        # A graph tab restored from Obsidian's workspace writes its own (empty) colours over
-        # graph.json, so filled colours vanish until the tab is closed and opened again.
+    def graph_vault(self, graph_tab=True):
+        """A vault Obsidian made: blank colour groups, and maybe a graph tab in its workspace."""
         target = self.notes.parent / "kasa"
         (target / ".obsidian").mkdir(parents=True)
         (target / ".obsidian" / "graph.json").write_text('{"colorGroups": []}', encoding="utf-8")
+        leaf = "graph" if graph_tab else "markdown"
         (target / ".obsidian" / "workspace.json").write_text(
-            '{"main": {"children": [{"type": "leaf", "state": {"type": "graph", "state": {}}}]}}',
-            encoding="utf-8")
-        self.assertTrue(vault.graph_tab_open(target))
+            '{"main": {"children": [{"type": "leaf", "state": {"type": "%s", "state": {}}}]}}'
+            % leaf, encoding="utf-8")
+        return target
+
+    def test_colours_held_while_obsidian_shows_a_graph_tab(self):
+        # The open tab keeps its own copy of the settings and writes it over graph.json on the
+        # next zoom or change, so colours written now would vanish (seen in Obsidian 1.15).
+        target = self.graph_vault()
+        self.obsidian_running.return_value = True
         code, out = self.run_cli("home", str(target))
         self.assertEqual(code, 0, out)
-        self.assertIn("FILLED: .obsidian/graph.json", out)
-        self.assertIn("NOTE: a graph tab is open", out)
+        self.assertIn("HELD: .obsidian/graph.json", out)
+        self.assertIn("close Obsidian", out)
+        self.assertNotIn("FILLED: .obsidian/graph.json", out)
+        self.assertEqual(read_json(target / ".obsidian" / "graph.json"), {"colorGroups": []})
+        self.assertTrue((target / ".obsidian" / "app.json").exists())  # the rest is set up
 
-    def test_no_warning_without_a_graph_tab(self):
+    def test_colours_filled_when_obsidian_is_closed(self):
+        # A graph tab restored on the next start reads graph.json afresh: safe to fill.
+        target = self.graph_vault()
+        self.assertTrue(vault.graph_tab_open(target))
+        code, out = self.run_cli("home", str(target))
+        self.assertIn("FILLED: .obsidian/graph.json", out)
+        self.assertNotIn("NOTE: could not tell", out)
+        self.assertTrue(read_json(target / ".obsidian" / "graph.json")["colorGroups"])
+
+    def test_colours_filled_while_obsidian_runs_without_a_graph_tab(self):
+        # Obsidian reloads graph.json when it changes; a graph opened later gets the colours.
+        target = self.graph_vault(graph_tab=False)
+        self.obsidian_running.return_value = True
+        code, out = self.run_cli("home", str(target))
+        self.assertIn("FILLED: .obsidian/graph.json", out)
+        self.assertNotIn("HELD", out)
+
+    def test_colours_filled_with_a_note_when_obsidian_cannot_be_checked(self):
+        target = self.graph_vault()
+        self.obsidian_running.return_value = None
+        code, out = self.run_cli("home", str(target))
+        self.assertIn("FILLED: .obsidian/graph.json", out)
+        self.assertIn("NOTE: could not tell whether Obsidian is open", out)
+
+    def test_no_process_check_once_colours_are_set(self):
+        target = self.graph_vault()
+        vault.obsidian_starter(target)
+        self.obsidian_running.reset_mock()
+        self.obsidian_running.return_value = True
+        self.assertEqual(vault.obsidian_starter(target), [])
+        self.obsidian_running.assert_not_called()
+
+    def test_no_note_without_a_graph_tab(self):
         target = self.notes.parent / "kasa"
         (target / ".obsidian").mkdir(parents=True)
         (target / ".obsidian" / "workspace.json").write_text("{bozuk", encoding="utf-8")
         self.assertFalse(vault.graph_tab_open(target))
+        self.obsidian_running.return_value = True
         code, out = self.run_cli("home", str(target))
-        self.assertNotIn("NOTE: a graph tab", out)
+        self.assertIn("CREATED: .obsidian/graph.json", out)
+        self.assertNotIn("NOTE: could not tell", out)
+        self.assertNotIn("HELD", out)
 
     def test_me_prints_the_questions_while_blank(self):
         vault.seed(self.notes)
@@ -198,6 +242,34 @@ class FirstRunCommandsTest(VaultCase):
         with redirect_stdout(out):
             code = cli.main(list(argv), notes_dir=self.notes)
         return code, out.getvalue()
+
+
+class ObsidianRunningTest(unittest.TestCase):
+    """Telling whether Obsidian runs, from the process list."""
+
+    def check(self, name, returncode=0, stdout="", error=None):
+        done = mock.Mock(returncode=returncode, stdout=stdout)
+        with mock.patch("lorelib.vault.os.name", name), \
+                mock.patch("lorelib.vault.subprocess.run", return_value=done,
+                           side_effect=error) as run:
+            return vault.obsidian_running(), run.call_args
+
+    def test_windows(self):
+        found, call = self.check("nt", stdout="Obsidian.exe   25424 Console   2   107,036 K")
+        self.assertTrue(found)
+        self.assertEqual(call.args[0][0], "tasklist")
+        self.assertFalse(self.check("nt", stdout="INFO: No tasks are running.")[0])
+        self.assertIsNone(self.check("nt", returncode=1)[0])
+
+    def test_macos_and_linux(self):
+        found, call = self.check("posix", returncode=0)
+        self.assertTrue(found)
+        self.assertEqual(call.args[0][0], "pgrep")
+        self.assertFalse(self.check("posix", returncode=1)[0])
+        self.assertIsNone(self.check("posix", returncode=2)[0])
+
+    def test_no_process_tool(self):
+        self.assertIsNone(self.check("posix", error=FileNotFoundError())[0])
 
 
 if __name__ == "__main__":

@@ -416,12 +416,20 @@ def _set_up(vault_dir: Path) -> None:
     for path in vault.seed(vault_dir):
         print("CREATED:", path.as_posix())
     for path, action in vault.obsidian_starter(vault_dir):
-        print("CREATED:" if action == "created" else "FILLED:",
-              path.relative_to(vault_dir).as_posix())
-        if path.name == "graph.json" and vault.graph_tab_open(vault_dir):
-            print("NOTE: a graph tab is open in Obsidian; on its next start it writes its own "
-                  "settings over these colours. Ask the user to close the graph tab, then run "
-                  "`python lore.py seed` again and reopen the graph (Ctrl+G).")
+        rel = path.relative_to(vault_dir).as_posix()
+        if action == "held":
+            print(f"HELD: {rel} (Obsidian is open with a graph tab)")
+            print("NOTE: an open graph tab writes its own copy of the graph settings over "
+                  "graph.json when the graph is zoomed or changed, so the area colours were "
+                  "not written. Ask the user to close Obsidian, then run "
+                  "`python lore.py seed` again.")
+            continue
+        print("CREATED:" if action == "created" else "FILLED:", rel)
+        if path.name == "graph.json" and vault.graph_tab_open(vault_dir) \
+                and vault.obsidian_running() is None:
+            print("NOTE: could not tell whether Obsidian is open. If it is, with a graph tab, "
+                  "that tab overwrites these colours; ask the user to close Obsidian and run "
+                  "`python lore.py seed` again.")
     words = {"created": "CREATED", "updated": "UPDATED"}
     for change in install.install(vault_dir):
         if change.action in words:

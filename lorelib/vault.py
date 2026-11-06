@@ -12,6 +12,7 @@ import json
 import os
 import re
 import socket
+import subprocess
 from datetime import datetime
 from pathlib import Path
 
@@ -378,11 +379,13 @@ Related: [[home]]
 """
 
 
-def _fill_json(path: Path, wanted: dict) -> str | None:
+def _fill_json(path: Path, wanted: dict, write: bool = True) -> str | None:
     """Create the settings file, or fill keys that are missing or empty in it.
-    A key the user set to something is kept; a file that is not valid JSON is left alone."""
+    A key the user set to something is kept; a file that is not valid JSON is left alone.
+    With write=False nothing is written; the return value says what would be done."""
     if not path.exists():
-        write_new(path, json.dumps(wanted, indent=2) + "\n")
+        if write:
+            write_new(path, json.dumps(wanted, indent=2) + "\n")
         return "created"
     try:
         data = json.loads(read(path) or "{}")
@@ -393,6 +396,8 @@ def _fill_json(path: Path, wanted: dict) -> str | None:
     blank = {k: v for k, v in wanted.items() if data.get(k) in (None, "", [], {})}
     if not blank:
         return None
+    if not write:
+        return "filled"
     data.update(blank)
     tmp = path.with_name(path.name + ".tmp")
     tmp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
@@ -401,8 +406,8 @@ def _fill_json(path: Path, wanted: dict) -> str | None:
 
 
 def graph_tab_open(vault_dir: Path) -> bool:
-    """True if Obsidian's saved workspace has a graph tab. Such a tab writes its own
-    settings over graph.json when Obsidian starts, so colours filled in meanwhile vanish."""
+    """True if Obsidian's workspace has a graph tab: the one open now, or the one it restores
+    on its next start (a restored tab reads graph.json afresh, so only an open one matters)."""
     try:
         data = json.loads(read(vault_dir / ".obsidian" / "workspace.json"))
     except (OSError, ValueError):
@@ -418,11 +423,34 @@ def graph_tab_open(vault_dir: Path) -> bool:
     return walk(data)
 
 
+def obsidian_running() -> bool | None:
+    """True if Obsidian runs on this machine, False if not, None if that cannot be told."""
+    if os.name == "nt":
+        cmd = ["tasklist", "/FI", "IMAGENAME eq Obsidian.exe", "/NH"]
+    else:
+        cmd = ["pgrep", "-x", "-i", "obsidian"]
+    try:
+        done = subprocess.run(cmd, capture_output=True, text=True, errors="replace", timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if os.name == "nt":
+        return "obsidian.exe" in done.stdout.lower() if done.returncode == 0 else None
+    return {0: True, 1: False}.get(done.returncode)  # pgrep: 0 found, 1 none, else error
+
+
+def graph_held(vault_dir: Path) -> bool:
+    """True if colours written now would be lost: Obsidian runs with a graph tab open. That
+    tab keeps its own copy of the graph settings and writes it over graph.json whenever the
+    graph is zoomed or changed; Obsidian reloads the file, but the open tab does not."""
+    return graph_tab_open(vault_dir) and obsidian_running() is True
+
+
 def obsidian_starter(vault_dir: Path) -> list[tuple[Path, str]]:
     """A note template with lore's header, graph colours per area, and the agent files
     excluded from the graph. A vault made in Obsidian already holds blank settings files,
-    so missing or empty keys are filled in; anything the user set stays as it is.
-    Returns (path, "created" | "filled")."""
+    so missing or empty keys are filled in; anything the user set stays as it is. The graph
+    colours are held back (not written) while an open graph tab would overwrite them.
+    Returns (path, "created" | "filled" | "held")."""
     obsidian = vault_dir / ".obsidian"
     groups = [{"query": f"path:{area}", "color": {"a": 1, "rgb": rgb}}
               for area, rgb in _GRAPH_COLORS.items()]
@@ -436,6 +464,10 @@ def obsidian_starter(vault_dir: Path) -> list[tuple[Path, str]]:
         # of the graph, search and quick switcher.
         (obsidian / "app.json", {"userIgnoreFilters": [*AGENT_FILES, "_templates/"]}),
     ):
+        if path.name == "graph.json" and _fill_json(path, wanted, write=False) \
+                and graph_held(vault_dir):
+            changes.append((path, "held"))
+            continue
         action = _fill_json(path, wanted)
         if action:
             changes.append((path, action))

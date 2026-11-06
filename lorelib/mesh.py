@@ -113,7 +113,8 @@ def check(notes_dir: Path, min_messages: int = config.DEFAULTS["remind_min_messa
     state_dir = state_dir or vault.STATE_DIR
     for rec in sessionlog.read(session_log).values():
         if (rec["messages"] >= min_messages and rec["session"] not in sealed
-                and not sessions.is_private(rec["session"], "", {}, state_dir)):
+                and not sessions.is_private(rec["session"], "", {}, state_dir)
+                and not sessions.is_skipped(rec["session"], state_dir)):
             report.missing_outcome.append((rec["client"], rec["session"], rec["last"],
                                            rec["messages"]))
     report.missing_outcome.sort(key=lambda m: m[2], reverse=True)

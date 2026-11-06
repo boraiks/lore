@@ -30,11 +30,20 @@ def extract(body: str) -> Found:
     return Found(body[b:end], (body[:b] + body[end:]).strip())
 
 
-def render(lines: list[str], links: list[str]) -> str:
-    items = ["- " + line.strip().lstrip("-*• ").strip() for line in lines if line.strip()]
-    out = [BEGIN, HEADING, *items]
+DETAILS = "### Details"
+
+
+def _items(lines) -> list[str]:
+    return ["- " + line.strip().lstrip("-*• ").strip() for line in lines if line.strip()]
+
+
+def render(lines: list[str], links: list[str], details=()) -> str:
+    """Outcome lines, the links, then optional details (read only when the note is opened)."""
+    out = [BEGIN, HEADING, *_items(lines)]
     if links:
         out.append("Related: " + " ".join(f"[[{link}]]" for link in links))
+    if details:
+        out += [DETAILS, *_items(details)]
     out.append(END)
     return "\n".join(out)
 

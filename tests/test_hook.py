@@ -177,7 +177,8 @@ class ReminderTest(HookCase):
         self.long_session()
         reason = self.stop()["reason"]
         self.assertIn("before your final answer", reason)
-        self.assertIn("does not want it recorded", reason)
+        self.assertIn("should not be recorded", reason)
+        self.assertIn("--private", reason)
         self.assertIn("in the user's language", reason)
 
 

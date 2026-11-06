@@ -20,6 +20,9 @@ CLIENTS = ("claude", "codex", "antigravity", "manual")
 # CLAUDE_CODE_SESSION_ID is observed in Claude Code; the Codex names are not documented.
 ENV_KEYS = {"claude": ("CLAUDE_CODE_SESSION_ID",), "codex": ("CODEX_THREAD_ID", "CODEX_SESSION_ID")}
 MIN_LINES, MAX_LINES, LINE_CHARS = 3, 8, 300
+DETAIL_LINES = 25          # the optional "## Details" part of the body
+DETAILS_MARK = "## Details"
+SUMMARIZERS = ("agent", "subagent")
 # Antigravity app data folders (App, IDE, CLI); each keeps brain/<conversationId>/...
 AG_ROOTS = tuple(Path.home() / ".gemini" / d for d in ("antigravity", "antigravity-ide",
                                                         "antigravity-cli"))
@@ -73,8 +76,38 @@ def resolve_session(client: str, session_id: str | None, topic: str | None, env,
     return f"{client}-{now:%Y%m%d}-{vault.slugify(topic, 40)}"
 
 
+def _in_vault(cwd: str, notes_dir: Path) -> bool:
+    """A session opened in the vault itself gets no folder tag: every one would carry it."""
+    if not cwd:
+        return False
+    try:
+        return Path(cwd).resolve() == Path(notes_dir).resolve()
+    except OSError:
+        return False
+
+
 def mark_private(state_dir: Path, session_id: str) -> Path:
     return sessions.mark_private(state_dir, session_id)
+
+
+def _split(body: str) -> tuple[str, str]:
+    """(outcome lines, details lines): details follow a line that reads `## Details`."""
+    rows = body.splitlines()
+    for i, row in enumerate(rows):
+        if row.strip().lower() == DETAILS_MARK.lower():
+            return "\n".join(rows[:i]), "\n".join(rows[i + 1:])
+    return body, ""
+
+
+def _details(text: str) -> list[str]:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if len(lines) > DETAIL_LINES:
+        raise ValueError(f"details can have at most {DETAIL_LINES} lines ({len(lines)} given)")
+    long = [i for i, line in enumerate(lines, 1) if len(line) > LINE_CHARS]
+    if long:
+        raise ValueError(f"details line longer than {LINE_CHARS} characters: "
+                         f"{', '.join(map(str, long))}")
+    return lines
 
 
 def _lines(body: str) -> list[str]:
@@ -90,7 +123,8 @@ def _lines(body: str) -> list[str]:
 def seal(notes_dir: Path, client: str, body: str, links, session_id: str | None = None,
          topic: str | None = None, cwd: str = "", now: datetime | None = None,
          machine: str | None = None, state_dir: Path | None = None, cfg: dict | None = None,
-         env=None, log_path: Path | None = None, ag_roots=None) -> Result:
+         env=None, log_path: Path | None = None, ag_roots=None,
+         summarizer: str = "agent") -> Result:
     """Write or replace the outcome block. Nothing touches disk if a check fails."""
     now = now or datetime.now()
     cfg = cfg if cfg is not None else config.load()
@@ -98,8 +132,12 @@ def seal(notes_dir: Path, client: str, body: str, links, session_id: str | None 
     env = os.environ if env is None else env
     if client not in CLIENTS:
         raise ValueError(f"invalid client: {client}")
+    if summarizer not in SUMMARIZERS:
+        raise ValueError(f"invalid summarizer: {summarizer}")
     topic = " ".join((topic or "").split())
-    lines = _lines(body)
+    outcome_text, details_text = _split(body)
+    lines = _lines(outcome_text)
+    details = _details(details_text)
     links = [l for l in (clean_link(x) for x in links) if l]
     if not links:
         raise ValueError("at least one --link is required (the area note, e.g. career/career, if nothing else fits)")
@@ -121,15 +159,20 @@ def seal(notes_dir: Path, client: str, body: str, links, session_id: str | None 
     if missing:
         raise ValueError("link target not found: " + ", ".join(f"[[{l}]]" for l in missing)
                          + " (find an existing note with recall first)")
-    block = outcome.render([guard.mask_home(line) for line in lines], links)
+    block = outcome.render([guard.mask_home(line) for line in lines], links,
+                           [guard.mask_home(line) for line in details])
 
     path = sessions.find(notes_dir, session_id)
     if path is not None:
         meta, old = frontmatter.parse(vault.read(path))
         if sessions.truthy(meta.get("private", "")):
             raise PrivateSession(session_id)
+        if (summarizer == "subagent" and meta.get("summarizer") == "agent"
+                and outcome.extract(old).block):
+            raise ValueError("this session already has an outcome written by its own agent; "
+                             "it was left as it is")
         new_body = outcome.put(old, block)
-        meta.update({"updated": vault.stamp(now), "status": "summarized", "summarizer": "agent"})
+        meta.update({"updated": vault.stamp(now), "status": "summarized", "summarizer": summarizer})
         if topic:
             meta["title"] = f"Session: {topic}"
         sessions.rewrite(path, meta, new_body)
@@ -137,13 +180,13 @@ def seal(notes_dir: Path, client: str, body: str, links, session_id: str | None 
     else:
         vault.seed(notes_dir, now=now, machine=machine)
         name = topic or lines[0]
-        project = sessions.project_tag(cwd)
+        project = "" if _in_vault(cwd, notes_dir) else sessions.project_tag(cwd)
         ts = vault.stamp(now)
         meta = {"title": f"Session: {guard.clip(name, 60)}", "created": ts, "updated": ts,
                 "tags": ["session", f"client/{client}"] + ([project] if project else []),
                 "status": "summarized", "type": "session",
                 "machine": machine or vault.machine_name(), "client": client,
-                "session": session_id, "summarizer": "agent"}
+                "session": session_id, "summarizer": summarizer}
         path = sessions.new_path(notes_dir, now, client, name)
         vault.write_new(path, frontmatter.render(meta) + "\n" + block + "\n")
         action = "created"

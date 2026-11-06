@@ -79,6 +79,25 @@ def mark_private(state_dir: Path, session_id: str) -> Path:
     return path
 
 
+def _skipped(state_dir: Path, session_id: str) -> Path:
+    return state_dir / "skipped" / session_id
+
+
+def mark_skipped(state_dir: Path, session_id: str) -> Path:
+    """No outcome will be written for this session (its transcript is gone, or it is not
+    worth one); it leaves the pending list. Unlike private, its record stays allowed."""
+    if not SESSION_ID.match(session_id):
+        raise ValueError("invalid session id")
+    path = _skipped(state_dir, session_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.touch()
+    return path
+
+
+def is_skipped(session_id: str, state_dir: Path) -> bool:
+    return bool(SESSION_ID.match(session_id or "")) and _skipped(state_dir, session_id).exists()
+
+
 def is_private(session_id: str, cwd: str, cfg: dict, state_dir: Path, meta: dict | None = None) -> bool:
     """Marked by the agent (seal --private), by folder (config), or in the note header."""
     if SESSION_ID.match(session_id or "") and _marker(state_dir, session_id).exists():

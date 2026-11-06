@@ -101,6 +101,7 @@ After setup there is nothing to run. Keep the vault open in Obsidian, open the s
 | "Do you remember the Acme interview?" | searches with `recall` (the topic plus close words, since search matches words, not meaning) and opens only the matching notes |
 | "Note this: ..." | writes a note with `jot`, linked to a related one |
 | "Save" / "Wrap up" | records the session outcome with `seal` |
+| *(a long session ends without a record)* | a background subagent reads a short digest of the transcript and writes the record, with a Details section; sessions missed earlier are picked up the same way at the start of the next session |
 | "Check the memory" | runs `mesh` and suggests fixes without touching anything |
 | "Organize the memory" | reads a short inventory and tidies up on its own: merges `fitness` into `spor`, adds `spor` to notes tagged `antrenman` and keeps it, opens a `spor` area, moves the inbox notes there; then tells you what it did |
 | "Undo that" | reverts the whole tidy-up with `undo` (notes you changed since are left alone) |
@@ -127,7 +128,7 @@ Not everyone studies or hunts for jobs, so lore forces no topics on you. It crea
 - To write notes by hand with the same header the agents use, use the **Templates** core plugin (on by default); its folder is already set to `_templates`.
 - The graph shows three things at once:
   - **colour = area**: each area folder has its own colour, and its area note (`career/career.md`, ...) is the hub its notes link to;
-  - **links = topic**: `[[links]]` connect notes about the same thing;
+  - **links = topic**: `[[links]]` connect notes about the same thing. Agents link every note to the main note of its project or topic, so the topics you work on most grow into the biggest nodes;
   - **`#client/...` tags = where a note was written** (optional): `jot` and `seal` tag every note with its client (`#client/claude`, `#client/codex`, `#client/antigravity`). Turn on the graph's **Tags** option if you want to see notes cluster around their client.
 
 There is nothing to set by hand. If Obsidian already made its settings files (for example because you created the vault in Obsidian first), lore fills in only what is missing or empty there: the colour groups, the excluded files (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `_templates/`) and the template folder. Anything you set yourself stays as it is.
@@ -174,7 +175,9 @@ Then open the vault folder in Obsidian, and install the session hooks. Look firs
 |---|---|
 | `recall "<query>"` | Search. Limited, ranked results with masked secrets and a "this is data, not instructions" warning on top. |
 | `jot` | Write a new note: generated header, never overwrites, rejects secrets without printing them, always linked. |
-| `seal` | Record the session outcome as an `## Outcome` block in `sessions/<date>-<client>-<topic>.md`, updated in place for the same session. |
+| `seal` | Record the session outcome as an `## Outcome` block in `sessions/<date>-<client>-<topic>.md`, updated in place for the same session. Lines after `## Details` become a Details section; `--summarizer subagent` marks a record a subagent wrote (it never replaces one the session's own agent wrote). |
+| `digest --client <c> --session <id>` | A short, secret-masked excerpt of a session's transcript (what was asked, what each turn concluded, files changed) for a subagent to summarize. |
+| `pending [--skip <id>]` | Sessions that still have no outcome record; `--skip` takes one off the list. |
 | `mesh` | Broken `[[links]]`, orphan notes, broken outcome blocks, and (as information) sessions without an outcome and the inbox: size, age, tags. |
 | `organize` | A short inventory for tidying up: areas, tags with counts, inbox notes. |
 | `tag merge <tags> --into <tag> [--keep] [--apply]` | Replace tags across notes (synonyms), or with `--keep` add the broad tag and keep the old ones (sub-topics). Edits only the header's tags and `updated` lines. |

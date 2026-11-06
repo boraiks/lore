@@ -9,8 +9,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from . import (config, frontmatter, guard, hook, inbox, install, jot, mesh, organize, recall,
-               seal, sessions, skills, vault, wire)
+from . import (config, digest, frontmatter, guard, hook, inbox, install, jot, mesh, organize,
+               recall, seal, sessions, skills, vault, wire)
 
 
 def _display(path: Path, notes_dir: Path) -> str:
@@ -53,6 +53,15 @@ def _parser() -> argparse.ArgumentParser:
     sbody.add_argument("--body-file", help="UTF-8 file; '-' for stdin")
     s.add_argument("--private", action="store_true",
                    help="do not record this session: stops reminders and records, deletes nothing")
+    s.add_argument("--summarizer", choices=seal.SUMMARIZERS, default="agent",
+                   help="who wrote it: the session's own agent, or a subagent from a digest")
+
+    dg = sub.add_parser("digest", help="short excerpt of a session's transcript for a subagent")
+    dg.add_argument("--client", required=True, choices=("claude", "codex", "antigravity"))
+    dg.add_argument("--session", required=True)
+
+    pd = sub.add_parser("pending", help="sessions that still have no outcome record")
+    pd.add_argument("--skip", metavar="SESSION", help="no outcome will be written for it")
 
     h = sub.add_parser("hook", help="client hook entry: reads stdin JSON, quietly exits 0")
     h.add_argument("client")
@@ -261,6 +270,39 @@ def _undo(notes_dir: Path) -> int:
     return 0
 
 
+def _pending_lines(items) -> list[str]:
+    return [f"  {p.client} {p.session} ({p.messages} messages, last {p.last[:10]})"
+            for p in items[:5]] + ([f"  (+{len(items) - 5} more)"] if len(items) > 5 else [])
+
+
+def _digest(args) -> int:
+    path = digest.find_transcript(args.client, args.session)
+    if path is None:
+        print(f"ERROR: no transcript found for {args.client} session {args.session}. If it is "
+              f"gone, run: python lore.py pending --skip {args.session}")
+        return 5
+    print(digest.build(path))
+    return 0
+
+
+def _pending(args, notes_dir: Path) -> int:
+    if args.skip:
+        try:
+            sessions.mark_skipped(vault.STATE_DIR, args.skip)
+        except ValueError as e:
+            print(f"ERROR: {e}")
+            return 5
+        print(f"SKIPPED: {args.skip} leaves the pending list; nothing was deleted.")
+        return 0
+    items = digest.pending(notes_dir)
+    if not items:
+        print("No session is waiting for an outcome record.")
+        return 0
+    print(f"{len(items)} sessions without an outcome record:")
+    print("\n".join(_pending_lines(items)))
+    return 0
+
+
 def _intro_prompt() -> str:
     lines = ["me.md has no answers yet. Ask the user these now, one or two at a time, in their "
              "language; they may skip any or all of them:"]
@@ -295,6 +337,12 @@ def _me(args, notes_dir: Path) -> int:
             print(frontmatter.parse(vault.read(path))[1].strip())
         if vault.me_is_blank(notes_dir):
             print(_intro_prompt())
+        waiting = digest.pending(notes_dir)
+        if waiting:
+            print(f"PENDING: {len(waiting)} session{'s' if len(waiting) > 1 else ''} without an "
+                  "outcome record. Without asking, start one background subagent per session "
+                  "(AGENTS.md: Summaries by a subagent), say so in one line, then go on:")
+            print("\n".join(_pending_lines(waiting)))
         return 0
     try:
         path = vault.set_me(notes_dir, args.body if args.body is not None else _read_body(args))
@@ -317,7 +365,7 @@ def _seal(args, notes_dir: Path) -> int:
                      if existing else ""))
             return 0
         result = seal.seal(notes_dir, args.client, _read_body(args), args.link, args.session,
-                           args.topic, cwd=os.getcwd())
+                           args.topic, cwd=os.getcwd(), summarizer=args.summarizer)
     except jot.SecretRejected as e:
         print(f"REJECTED: {e}. Nothing was written; remove that line.")
         return 3
@@ -495,6 +543,12 @@ def main(argv=None, notes_dir: Path | None = None) -> int:
 
     if args.cmd == "welcome":
         return _welcome(args, notes_dir)
+
+    if args.cmd == "digest":
+        return _digest(args)
+
+    if args.cmd == "pending":
+        return _pending(args, notes_dir)
 
     if args.cmd == "organize":
         organize.start_run(notes_dir)

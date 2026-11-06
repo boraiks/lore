@@ -87,7 +87,9 @@ def _insert(body: str, line: str) -> str:
                    if l.strip().startswith(("Related: [[", "Home: [[", "<!-- lore:"))), len(lines))
         while at > 0 and not lines[at - 1].strip():
             at -= 1
-        block = ["", HEADING, line, ""]
+        block = ["", HEADING, line]
+        if at < len(lines) and lines[at].strip():
+            block.append("")
         lines[at:at] = block
         return "\n".join(lines)
     while end - 1 > start and not lines[end - 1].strip():

@@ -90,7 +90,8 @@ def reminder_text(client: str, session_id: str) -> str:
             "the summary is being written, then finish. If you cannot start a subagent, before "
             "your final answer write 3-8 lines yourself: what was done, what was decided and "
             "why, what is still open, the next concrete step; link the project or topic note "
-            f"the work belongs to (find it with recall). Command: {cmd} . Write in the user's "
+            f"the work belongs to (find it with recall). Command: {cmd} . Then add lasting "
+            "knowledge to that note with `lore.py know` (AGENTS.md: Knowledge). Write in the user's "
             "language. Never copy the raw chat, your reasoning, tool output, secrets or "
             "personal data.")
 

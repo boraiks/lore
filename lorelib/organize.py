@@ -409,12 +409,20 @@ def undo(vault_dir: Path, now: datetime | None = None) -> UndoResult:
     now = now or datetime.now()
     entries = _entries(vault_dir)
     done = {e.get("undo") for e in entries if "undo" in e}
-    batches = [e for e in entries if e.get("kind") in ("tags", "move") and e.get("run") not in done]
+    batches = [e for e in entries if e.get("kind") in ("tags", "move", "know")
+               and e.get("run") not in done]
     if not batches:
         raise ValueError("Nothing to undo: no organize changes are recorded.")
     run = batches[-1]["run"]
     result = UndoResult(run)
     for batch in reversed([b for b in batches if b["run"] == run]):
+        if batch["kind"] == "know":
+            from . import knowledge
+            if knowledge.revert(vault_dir, batch, now):
+                result.undone.append(f"knowledge line in {batch['path']}")
+            else:
+                result.skipped.append(batch["path"])
+            continue
         if batch["kind"] == "tags":
             for rec in batch.get("notes", []):
                 path = vault_dir / rec["path"]

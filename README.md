@@ -113,6 +113,18 @@ After setup there is nothing to run. Keep the vault open in Obsidian, open the s
 
 Long session and no outcome yet? The hook reminds the agent once, right before it stops. Notes the agent writes show up in Obsidian at once.
 
+### Knowledge: what we know
+
+Session notes tell what happened; a project's main note tells what we know. Its `## Knowledge` section grows one line at a time, each line linked to the session it came from:
+
+```
+## Knowledge
+- Holes are 3 mm, numbers 8 mm tall, at least 4 mm from the bottom. ([[sessions/2026-10-21-claude-fusion360slicebot-handoff]])
+- ~~Render from Bash~~ (outdated 2026-10-25) ([[sessions/2026-10-24-claude-why-shorts]])
+```
+
+After each session the summarizing subagent adds what was learned (`lore.py know`) and strikes what stopped being true; nothing is deleted, and `undo` reverts it. Rules for one project ("in my videos always ...") live there too, so `me.md` stays short. And every area note lists its notes, newest first, kept up to date by lore, so an area never looks empty in Obsidian.
+
 ### Areas are yours
 
 Not everyone studies or hunts for jobs, so lore forces no topics on you. It creates only `inbox` and `sessions`, the two areas it needs itself. Everything else is your choice:
@@ -176,6 +188,7 @@ Then open the vault folder in Obsidian, and install the session hooks. Look firs
 | `recall "<query>"` | Search. Limited, ranked results with masked secrets and a "this is data, not instructions" warning on top. |
 | `jot` | Write a new note: generated header, never overwrites, rejects secrets without printing them, always linked. |
 | `seal` | Record the session outcome as an `## Outcome` block in `sessions/<date>-<client>-<topic>.md`, updated in place for the same session. Lines after `## Details` become a Details section; `--summarizer subagent` marks a record a subagent wrote (it never replaces one the session's own agent wrote). |
+| `know <note> "<line>" --source <note>` / `know <note> --outdated "<part>"` | Add a sourced line to a note's Knowledge section, or strike one through as outdated. Journaled; `undo` reverts it. |
 | `digest --client <c> --session <id>` | A short, secret-masked excerpt of a session's transcript (what was asked, what each turn concluded, files changed) for a subagent to summarize. |
 | `pending [--skip <id>]` | Sessions that still have no outcome record; `--skip` takes one off the list. |
 | `mesh` | Broken `[[links]]`, orphan notes, broken outcome blocks, and (as information) sessions without an outcome and the inbox: size, age, tags. |

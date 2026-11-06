@@ -9,8 +9,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from . import (config, digest, frontmatter, guard, hook, inbox, install, jot, mesh, organize,
-               recall, seal, sessions, skills, vault, wire)
+from . import (config, digest, frontmatter, guard, hook, inbox, install, jot, knowledge, mesh,
+               organize, recall, seal, sessions, skills, vault, wire)
 
 
 def _display(path: Path, notes_dir: Path) -> str:
@@ -91,6 +91,13 @@ def _parser() -> argparse.ArgumentParser:
     tm.add_argument("--keep", action="store_true",
                     help="add the target and keep the old tags (sub-topics, not synonyms)")
     tm.add_argument("--apply", action="store_true")
+
+    kn = sub.add_parser("know", help="add a sourced line to a note's Knowledge section")
+    kn.add_argument("note", help="the project or topic note, e.g. work/layercraft")
+    kn.add_argument("fact", nargs="?", help="one line: a decision, a rule, a measurement, a fact")
+    kn.add_argument("--source", help="the note it comes from, usually the session note")
+    kn.add_argument("--outdated", metavar="FRAGMENT",
+                    help="strike through the one knowledge line containing this text")
 
     mv = sub.add_parser("move", help="move notes into an area, keeping links; dry run unless --apply")
     mv.add_argument("notes", nargs="+", help="vault-relative or full paths")
@@ -199,6 +206,7 @@ def _area(args, notes_dir: Path) -> int:
             print(f"ERROR: {e}")
             return 5
         print("AREA CREATED:", _display(path, notes_dir))
+        knowledge.refresh_all(notes_dir)
         return 0
     if args.area_cmd == "decline":
         try:
@@ -254,6 +262,28 @@ def _move(args, notes_dir: Path) -> int:
     for path, n in plan.link_updates:
         print(f"{word}UPDATE LINKS: {vault.rel(path, notes_dir)} ({n})")
     print(_UNDO if args.apply else _DRY)
+    if args.apply:
+        knowledge.refresh_all(notes_dir)
+    return 0
+
+
+def _know(args, notes_dir: Path) -> int:
+    try:
+        if args.outdated:
+            line = knowledge.outdate(notes_dir, args.note, args.outdated)
+            print("OUTDATED:", line)
+            return 0
+        if not args.fact or not args.source:
+            print("ERROR: give the line and --source <note> (or --outdated <fragment>)")
+            return 5
+        added = knowledge.add(notes_dir, args.note, args.fact, args.source)
+    except guard.SecretRejected as e:
+        print(f"REJECTED: {e}. Nothing was written; remove that part.")
+        return 3
+    except ValueError as e:
+        print(f"ERROR: {e}")
+        return 5
+    print("ADDED to the Knowledge section." if added else "ALREADY there; nothing changed.")
     return 0
 
 
@@ -377,6 +407,7 @@ def _seal(args, notes_dir: Path) -> int:
         return 5
     word = "CREATED" if result.action == "created" else "UPDATED"
     print(f"OUTCOME {word}: {_display(result.path, notes_dir)} (session {result.session_id})")
+    knowledge.refresh_index(notes_dir, "sessions")
     return 0
 
 
@@ -400,6 +431,7 @@ def _set_up(vault_dir: Path) -> None:
     for change in skills.sync(vault.REPO):  # the repository's own copies, for working on lore
         if change.action == "stale":
             print(f"WARNING: skill copy without a source, not deleted: {change.path.as_posix()}")
+    knowledge.refresh_all(vault_dir)
     print("Existing notes untouched.")
     if vault.me_is_blank(vault_dir):
         print("NEXT: ask the intro questions; `python lore.py me` lists them.")
@@ -519,6 +551,7 @@ def main(argv=None, notes_dir: Path | None = None) -> int:
             print(f"ERROR: {e}")
             return 5
         print("WRITTEN:", _display(path, notes_dir))
+        knowledge.refresh_index(notes_dir, args.area)
         for w in warnings:
             print("WARNING:", w)
         if args.area == inbox.INBOX:
@@ -543,6 +576,9 @@ def main(argv=None, notes_dir: Path | None = None) -> int:
 
     if args.cmd == "welcome":
         return _welcome(args, notes_dir)
+
+    if args.cmd == "know":
+        return _know(args, notes_dir)
 
     if args.cmd == "digest":
         return _digest(args)
